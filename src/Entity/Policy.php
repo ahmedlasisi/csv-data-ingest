@@ -57,6 +57,9 @@ class Policy
     #[ORM\JoinColumn(nullable: false)]
     private ?Event $event = null;
 
+    #[ORM\OneToOne(mappedBy: 'policy', cascade: ['persist', 'remove'])]
+    private ?Financials $financials = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -214,6 +217,23 @@ class Policy
     public function setEvent(?Event $event): static
     {
         $this->event = $event;
+
+        return $this;
+    }
+
+    public function getFinancials(): ?Financials
+    {
+        return $this->financials;
+    }
+
+    public function setFinancials(Financials $financials): static
+    {
+        // set the owning side of the relation if necessary
+        if ($financials->getPolicy() !== $this) {
+            $financials->setPolicy($this);
+        }
+
+        $this->financials = $financials;
 
         return $this;
     }
