@@ -1,0 +1,81 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data_ingestion_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: "pgsql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/symfony # Mount local files inside the container
+      - /var/www/symfony/var/cache # Exclude cache
+      - /var/www/symfony/var/logs # Exclude logs
+    depends_on:
+      - database
+    networks:
+      - broker_network
+
+  database:
+    image: postgres:16-alpine
+    container_name: data_ingestion_db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - broker_network
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: data_ingestion_pgbouncer
+    restart: always
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    ports:
+      - "6432:6432"
+    networks:
+      - broker_network
+    depends_on:
+      - database
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: symfony_pgadmin
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - database
+    networks:
+      - broker_network
+
+networks:
+  broker_network:
+    driver: bridge
+
+volumes:
+  db_data:
