@@ -6,8 +6,11 @@ use App\Repository\ClientRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
+#[UniqueEntity(fields: ['client_ref'], message: 'Broker has a client with client_ref {{ value }} is on the system already')]
 class Client
 {
     #[ORM\Id]
@@ -15,7 +18,8 @@ class Client
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank(message: 'Client Ref cannot be blank')]
     private ?string $client_ref = null;
 
     #[ORM\Column(length: 50)]
@@ -26,6 +30,10 @@ class Client
      */
     #[ORM\OneToMany(targetEntity: Policy::class, mappedBy: 'client')]
     private Collection $policies;
+
+    #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Broker $broker = null;
 
     public function __construct()
     {
@@ -87,6 +95,18 @@ class Client
                 $policy->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getBroker(): ?Broker
+    {
+        return $this->broker;
+    }
+
+    public function setBroker(?Broker $broker): static
+    {
+        $this->broker = $broker;
 
         return $this;
     }
