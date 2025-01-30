@@ -2,11 +2,12 @@
 
 namespace App\Entity;
 
-use App\Repository\PolicyRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use App\Repository\PolicyRepository;
+use App\Entity\Traits\TimestampableTrait;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: PolicyRepository::class)]
 #[ORM\UniqueConstraint(columns: ['broker_id', 'policy_number'])]
@@ -14,8 +15,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[UniqueEntity(fields: ['broker', 'policy_number'], message: 'Broker has a policy with policy number: {{ value }} on the system already')]
 #[UniqueEntity(fields: ['insurer', 'insurer_policy_number'], message: 'Broker has a policy with insurer policy number: {{ value }} on the system already')]
 #[UniqueEntity(fields: ['root_policy_ref'], message: 'There is a policy with root policy ref: {{ value }} on the system already')]
+#[ORM\HasLifecycleCallbacks]
+
 class Policy
 {
+    use TimestampableTrait; // inherits createdAt & updatedAt
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -29,7 +34,7 @@ class Policy
     #[Assert\NotBlank(message: 'Insurer Policy Number cannot be blank')]
     private ?string $insurer_policy_number = null;
 
-    #[ORM\Column(length: 50, unique: true)]
+    #[ORM\Column(length: 50, unique: true, nullable: true)]
     #[Assert\NotBlank(message: 'Root Policy Ref cannot be blank')]
     private ?string $root_policy_ref = null;
 
@@ -48,12 +53,12 @@ class Policy
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $renewal_date = null;
 
-    #[ORM\Column(length: 140)]
+    #[ORM\Column(length: 140, nullable: true)]
     private ?string $company_description = null;
 
     #[ORM\ManyToOne(inversedBy: 'policies')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Client $Client = null;
+    private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'policies')]
     #[ORM\JoinColumn(nullable: false)]
@@ -67,7 +72,7 @@ class Policy
     #[ORM\JoinColumn(nullable: false)]
     private ?Event $event = null;
 
-    #[ORM\OneToOne(mappedBy: 'policy', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Financials::class, mappedBy: 'policy', cascade: ['persist', 'remove'])]
     private ?Financials $financials = null;
 
     #[ORM\ManyToOne(inversedBy: 'policies')]
@@ -188,12 +193,12 @@ class Policy
 
     public function getClient(): ?Client
     {
-        return $this->Client;
+        return $this->client;
     }
 
-    public function setClient(?Client $Client): static
+    public function setClient(?Client $client): static
     {
-        $this->Client = $Client;
+        $this->Client = $client;
 
         return $this;
     }

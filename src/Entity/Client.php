@@ -2,18 +2,23 @@
 
 namespace App\Entity;
 
-use App\Repository\ClientRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use App\Repository\ClientRepository;
+use App\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 #[ORM\UniqueConstraint(columns: ['broker_id', 'client_ref'])]
 #[UniqueEntity(fields: ['broker', 'client_ref'], message: 'Broker has a client with client_ref: {{ value }} on the system already')]
+#[ORM\HasLifecycleCallbacks]
+
 class Client
 {
+    use TimestampableTrait; // inherits createdAt & updatedAt
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

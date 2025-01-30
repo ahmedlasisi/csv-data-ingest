@@ -2,18 +2,23 @@
 
 namespace App\Entity;
 
-use App\Repository\EventRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use App\Repository\EventRepository;
+use App\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: EventRepository::class)]
 #[ORM\UniqueConstraint(columns: ['broker_id', 'name'])]
 #[UniqueEntity(fields: ['broker', 'name'], message: 'Broker has a events with name {{ value }} on the system already')]
+#[ORM\HasLifecycleCallbacks]
+
 class Event
 {
+    use TimestampableTrait; // inherits createdAt & updatedAt
+    
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

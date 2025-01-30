@@ -2,14 +2,18 @@
 
 namespace App\Entity;
 
-use App\Repository\BrokerRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\BrokerRepository;
+use App\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 
 #[ORM\Entity(repositoryClass: BrokerRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Broker
 {
+    use TimestampableTrait; // inherits createdAt & updatedAt
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -17,6 +21,9 @@ class Broker
 
     #[ORM\Column(length: 100)]
     private ?string $name = null;
+
+    #[ORM\Column(length: 50, unique: true)]
+    private ?string $code = null;
 
     /**
      * @var Collection<int, Client>
@@ -62,6 +69,7 @@ class Broker
         $this->events = new ArrayCollection();
         $this->policies = new ArrayCollection();
         $this->financials = new ArrayCollection();
+        $this->createdAt = new \DateTime();
     }
 
     public function getId(): ?int
@@ -78,6 +86,17 @@ class Broker
     {
         $this->name = $name;
 
+        return $this;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(string $code): static
+    {
+        $this->code = $code;
         return $this;
     }
 

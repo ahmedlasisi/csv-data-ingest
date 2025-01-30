@@ -2,13 +2,17 @@
 
 namespace App\Entity;
 
-use App\Repository\FinancialsRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\FinancialsRepository;
+use App\Entity\Traits\TimestampableTrait;
 
 #[ORM\Entity(repositoryClass: FinancialsRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Financials
 {
+    use TimestampableTrait; // inherits createdAt & updatedAt
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
