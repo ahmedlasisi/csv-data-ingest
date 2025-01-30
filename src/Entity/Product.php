@@ -6,8 +6,13 @@ use App\Repository\ProductRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
+#[ORM\UniqueConstraint(columns: ['broker_id', 'name'])]
+#[UniqueEntity(fields: ['broker', 'name'], message: 'Broker has a product with name {{ value }} on the system already')]
+
 class Product
 {
     #[ORM\Id]
@@ -15,7 +20,9 @@ class Product
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 100, unique: true)]
+    #[Assert\NotBlank(message: 'Product name cannot be blank')]
+
     private ?string $name = null;
 
     /**
@@ -23,6 +30,10 @@ class Product
      */
     #[ORM\OneToMany(targetEntity: Policy::class, mappedBy: 'product')]
     private Collection $policies;
+
+    #[ORM\ManyToOne(inversedBy: 'products')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Broker $broker = null;
 
     public function __construct()
     {
@@ -72,6 +83,18 @@ class Product
                 $policy->setProduct(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getBroker(): ?Broker
+    {
+        return $this->broker;
+    }
+
+    public function setBroker(?Broker $broker): static
+    {
+        $this->broker = $broker;
 
         return $this;
     }

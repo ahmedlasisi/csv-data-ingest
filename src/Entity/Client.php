@@ -10,7 +10,8 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
-#[UniqueEntity(fields: ['client_ref'], message: 'Broker has a client with client_ref {{ value }} is on the system already')]
+#[ORM\UniqueConstraint(columns: ['broker_id', 'client_ref'])]
+#[UniqueEntity(fields: ['broker', 'client_ref'], message: 'Broker has a client with client_ref: {{ value }} on the system already')]
 class Client
 {
     #[ORM\Id]

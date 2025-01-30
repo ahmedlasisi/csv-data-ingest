@@ -36,6 +36,10 @@ class Financials
     #[ORM\JoinColumn(nullable: false)]
     private ?Policy $policy = null;
 
+    #[ORM\ManyToOne(inversedBy: 'financials')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Broker $broker = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -121,6 +125,18 @@ class Financials
     public function setPolicy(Policy $policy): static
     {
         $this->policy = $policy;
+
+        return $this;
+    }
+
+    public function getBroker(): ?Broker
+    {
+        return $this->broker;
+    }
+
+    public function setBroker(?Broker $broker): static
+    {
+        $this->broker = $broker;
 
         return $this;
     }

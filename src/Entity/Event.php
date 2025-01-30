@@ -6,8 +6,12 @@ use App\Repository\EventRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EventRepository::class)]
+#[ORM\UniqueConstraint(columns: ['broker_id', 'name'])]
+#[UniqueEntity(fields: ['broker', 'name'], message: 'Broker has a events with name {{ value }} on the system already')]
 class Event
 {
     #[ORM\Id]
@@ -15,7 +19,8 @@ class Event
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank(message: 'Event name cannot be blank')]
     private ?string $name = null;
 
     /**
@@ -23,6 +28,9 @@ class Event
      */
     #[ORM\OneToMany(targetEntity: Policy::class, mappedBy: 'event')]
     private Collection $policies;
+
+    #[ORM\ManyToOne(inversedBy: 'events')]
+    private ?Broker $broker = null;
 
     public function __construct()
     {
@@ -72,6 +80,18 @@ class Event
                 $policy->setEvent(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getBroker(): ?Broker
+    {
+        return $this->broker;
+    }
+
+    public function setBroker(?Broker $broker): static
+    {
+        $this->broker = $broker;
 
         return $this;
     }

@@ -6,8 +6,13 @@ use App\Repository\InsurerRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: InsurerRepository::class)]
+#[ORM\UniqueConstraint(columns: ['broker_id', 'name'])]
+#[UniqueEntity(fields: ['broker', 'name'], message: 'Broker has an issuer with name {{ value }} on the system already')]
+
 class Insurer
 {
     #[ORM\Id]
@@ -15,7 +20,8 @@ class Insurer
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 100, unique: true)]
+    #[Assert\NotBlank(message: 'Insurer name cannot be blank')]
     private ?string $name = null;
 
     /**
@@ -23,6 +29,10 @@ class Insurer
      */
     #[ORM\OneToMany(targetEntity: Policy::class, mappedBy: 'insurer')]
     private Collection $policies;
+
+    #[ORM\ManyToOne(inversedBy: 'insurers')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Broker $broker = null;
 
     public function __construct()
     {
@@ -72,6 +82,18 @@ class Insurer
                 $policy->setInsurer(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getBroker(): ?Broker
+    {
+        return $this->broker;
+    }
+
+    public function setBroker(?Broker $broker): static
+    {
+        $this->broker = $broker;
 
         return $this;
     }

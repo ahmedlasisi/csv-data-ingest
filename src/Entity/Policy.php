@@ -5,8 +5,15 @@ namespace App\Entity;
 use App\Repository\PolicyRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PolicyRepository::class)]
+#[ORM\UniqueConstraint(columns: ['broker_id', 'policy_number'])]
+#[ORM\UniqueConstraint(columns: ['insurer_id', 'insurer_policy_number'])]
+#[UniqueEntity(fields: ['broker', 'policy_number'], message: 'Broker has a policy with policy number: {{ value }} on the system already')]
+#[UniqueEntity(fields: ['insurer', 'insurer_policy_number'], message: 'Broker has a policy with insurer policy number: {{ value }} on the system already')]
+#[UniqueEntity(fields: ['root_policy_ref'], message: 'There is a policy with root policy ref: {{ value }} on the system already')]
 class Policy
 {
     #[ORM\Id]
@@ -14,13 +21,16 @@ class Policy
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank(message: 'Policy Number cannot be blank')]
     private ?string $policy_number = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank(message: 'Insurer Policy Number cannot be blank')]
     private ?string $insurer_policy_number = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\NotBlank(message: 'Root Policy Ref cannot be blank')]
     private ?string $root_policy_ref = null;
 
     #[ORM\Column(length: 50)]
@@ -59,6 +69,9 @@ class Policy
 
     #[ORM\OneToOne(mappedBy: 'policy', cascade: ['persist', 'remove'])]
     private ?Financials $financials = null;
+
+    #[ORM\ManyToOne(inversedBy: 'policies')]
+    private ?Broker $broker = null;
 
     public function getId(): ?int
     {
@@ -234,6 +247,18 @@ class Policy
         }
 
         $this->financials = $financials;
+
+        return $this;
+    }
+
+    public function getBroker(): ?Broker
+    {
+        return $this->broker;
+    }
+
+    public function setBroker(?Broker $broker): static
+    {
+        $this->broker = $broker;
 
         return $this;
     }
