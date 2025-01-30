@@ -9,6 +9,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 
 #[ORM\Entity(repositoryClass: BrokerRepository::class)]
+#[ORM\UniqueConstraint(columns: ['name'])] // Ensure name is unique at DB level
 #[ORM\HasLifecycleCallbacks]
 class Broker
 {
@@ -19,11 +20,8 @@ class Broker
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 100, unique: true)]
     private ?string $name = null;
-
-    #[ORM\Column(length: 50, unique: true)]
-    private ?string $code = null;
 
     /**
      * @var Collection<int, Client>
@@ -84,19 +82,11 @@ class Broker
 
     public function setName(string $name): static
     {
-        $this->name = $name;
+        // Normalize broker name (trim, remove special characters, multiple spaces)
+        $cleanedName = preg_replace('/\s+/', ' ', trim($name)); // Remove extra spaces
+        $cleanedName = preg_replace('/[^A-Za-z0-9 ]/', '', $cleanedName); // Remove special chars
+        $this->name = $cleanedName;
 
-        return $this;
-    }
-
-    public function getCode(): ?string
-    {
-        return $this->code;
-    }
-
-    public function setCode(string $code): static
-    {
-        $this->code = $code;
         return $this;
     }
 
