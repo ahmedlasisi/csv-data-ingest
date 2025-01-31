@@ -41,7 +41,7 @@ class Policy
     #[ORM\Column(length: 50)]
     private ?string $policy_type = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $start_date = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
@@ -136,7 +136,7 @@ class Policy
         return $this->start_date;
     }
 
-    public function setStartDate(\DateTimeInterface $start_date): static
+    public function setStartDate(?\DateTimeInterface $start_date): static
     {
         $this->start_date = $start_date;
 
