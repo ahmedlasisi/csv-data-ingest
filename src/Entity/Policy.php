@@ -54,9 +54,9 @@ class Policy
     private ?\DateTimeInterface $renewal_date = null;
 
     #[ORM\Column(length: 140, nullable: true)]
-    private ?string $company_description = null;
+    private ?string $business_description = null;
 
-    #[ORM\ManyToOne(inversedBy: 'policies')]
+    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'policies')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Client $client = null;
 
@@ -179,14 +179,14 @@ class Policy
         return $this;
     }
 
-    public function getCompanyDescription(): ?string
+    public function getBusinessDescription(): ?string
     {
-        return $this->company_description;
+        return $this->business_description;
     }
 
-    public function setCompanyDescription(string $company_description): static
+    public function setBusinessDescription(string $business_description): static
     {
-        $this->company_description = $company_description;
+        $this->business_description = $business_description;
 
         return $this;
     }
@@ -198,7 +198,7 @@ class Policy
 
     public function setClient(?Client $client): static
     {
-        $this->Client = $client;
+        $this->client = $client;
 
         return $this;
     }

@@ -14,7 +14,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[ORM\UniqueConstraint(columns: ['broker_id', 'name'])]
 #[UniqueEntity(fields: ['broker', 'name'], message: 'Broker has an issuer with name {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
-class Insurer
+class Insurer implements BrokerDependentEntityInterface
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
 

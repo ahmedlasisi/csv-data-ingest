@@ -11,7 +11,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 #[ORM\Entity(repositoryClass: BrokerRepository::class)]
 #[ORM\UniqueConstraint(columns: ['name'])] // Ensure name is unique at DB level
 #[ORM\HasLifecycleCallbacks]
-class Broker
+class Broker implements BaseEntityInterface
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
 

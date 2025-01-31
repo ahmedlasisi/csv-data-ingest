@@ -16,7 +16,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\HasLifecycleCallbacks]
 
-class Product
+class Product implements BrokerDependentEntityInterface
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
 

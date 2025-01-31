@@ -15,7 +15,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[UniqueEntity(fields: ['broker', 'client_ref'], message: 'Broker has a client with client_ref: {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
 
-class Client
+class Client 
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
 

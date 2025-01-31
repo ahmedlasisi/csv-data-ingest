@@ -15,7 +15,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[UniqueEntity(fields: ['broker', 'name'], message: 'Broker has a events with name {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
 
-class Event
+class Event implements BrokerDependentEntityInterface
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
     

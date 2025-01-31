@@ -31,7 +31,7 @@ class Financials
     private ?string $admin_fee = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $tax_amount = null;
+    private ?string $ipta_amount = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $policy_fee = null;
@@ -97,14 +97,14 @@ class Financials
         return $this;
     }
 
-    public function getTaxAmount(): ?string
+    public function getIptaAmount(): ?string
     {
-        return $this->tax_amount;
+        return $this->ipta_amount;
     }
 
-    public function setTaxAmount(string $tax_amount): static
+    public function setIptaAmount(string $ipta_amount): static
     {
-        $this->tax_amount = $tax_amount;
+        $this->ipta_amount = $ipta_amount;
 
         return $this;
     }
