@@ -77,23 +77,21 @@ class ImportPoliciesCommand extends Command
             $batchSize = 50;
             $i = 0;
 
-            $this->entityManager->beginTransaction();
-
             foreach ($records as $record) {
-                $this->processRecord($record, $broker);
-
-                if (++$i % $batchSize === 0) {
-                    $this->entityManager->flush();
-                    $this->entityManager->clear();
+                try {
+                    $this->processRecord($record, $broker);
+                    if (++$i % $batchSize === 0) {
+                        $this->entityManager->flush();
+                        $this->entityManager->clear();
+                    }
+                } catch (\Exception $e) {
+                    $this->logger->error("Skipping record due to error: " . $e->getMessage());
                 }
             }
 
             $this->entityManager->flush();
-            $this->entityManager->commit();
-
             $io->success("Finished processing " . basename($filePath));
         } catch (\Exception $e) {
-            $this->entityManager->rollback();
             $this->logger->error("Failed processing {$filePath}: " . $e->getMessage());
             $io->error("Error: " . $e->getMessage());
         }
@@ -105,7 +103,8 @@ class ImportPoliciesCommand extends Command
         $clientRef = trim($record['ClientRef'] ?? '');
 
         if (!$policyNumber || !$clientRef) {
-            throw new \Exception("Missing required fields (PolicyNumber, ClientRef)");
+            $this->logger->warning("Skipping record due to missing fields: " . json_encode($record));
+            return;
         }
 
         $client = $this->findOrCreateClient($clientRef, trim($record['ClientType'] ?? ''), $broker);
@@ -118,6 +117,7 @@ class ImportPoliciesCommand extends Command
             return;
         }
 
+        // Create and persist Policy
         $policy = new Policy();
         $policy->setPolicyNumber($policyNumber)
             ->setInsurerPolicyNumber(trim($record['InsurerPolicyNumber'] ?? ''))
@@ -136,6 +136,7 @@ class ImportPoliciesCommand extends Command
 
         $this->entityManager->persist($policy);
 
+        // Create and persist Financials
         $financials = new Financials();
         $financials->setPolicy($policy)
             ->setBroker($broker)
@@ -151,19 +152,29 @@ class ImportPoliciesCommand extends Command
 
     private function findOrCreateClient(string $clientRef, string $clientType, Broker $broker): Client
     {
-        $client = $this->entityManager->getRepository(Client::class)->findOneBy([
+        $repository = $this->entityManager->getRepository(Client::class);
+        $client = $repository->findOneBy([
             'client_ref' => $clientRef,
             'broker' => $broker
         ]);
 
         if (!$client) {
-            $client = new Client();
-            $client->setClientRef($clientRef)
-                ->setBroker($broker)
-                ->setClientType($clientType);
+            try {
+                $client = new Client();
+                $client->setClientRef($clientRef)
+                    ->setBroker($broker)
+                    ->setClientType($clientType);
 
-            $this->entityManager->persist($client);
-            $this->entityManager->flush();
+                $this->entityManager->persist($client);
+                $this->entityManager->flush();
+            } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+                // If another process inserted it first, retrieve the existing client
+                $this->entityManager->clear();
+                $client = $repository->findOneBy([
+                    'client_ref' => $clientRef,
+                    'broker' => $broker
+                ]);
+            }
         }
 
         return $client;
@@ -176,6 +187,8 @@ class ImportPoliciesCommand extends Command
         }
 
         $criteria = ['name' => $name];
+
+        // If the entity has a broker field, include it in the lookup
         if ($broker && property_exists($entityClass, 'broker')) {
             $criteria['broker'] = $broker;
         }
@@ -184,13 +197,21 @@ class ImportPoliciesCommand extends Command
         $entity = $repository->findOneBy($criteria);
 
         if (!$entity) {
-            $entity = new $entityClass();
-            $entity->setName($name);
-            if ($broker && property_exists($entityClass, 'broker')) {
-                $entity->setBroker($broker);
+            try {
+                $entity = new $entityClass();
+                $entity->setName($name);
+
+                if ($broker && property_exists($entityClass, 'broker')) {
+                    $entity->setBroker($broker);
+                }
+
+                $this->entityManager->persist($entity);
+                $this->entityManager->flush();
+            } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+                // Retrieve the existing entity if another process inserted it first
+                $this->entityManager->clear();
+                $entity = $repository->findOneBy($criteria);
             }
-            $this->entityManager->persist($entity);
-            $this->entityManager->flush();
         }
 
         return $entity;
