@@ -2,21 +2,22 @@
 
 namespace App\Command;
 
+use App\Entity\Event;
 use App\Entity\Broker;
-use App\Entity\Policy;
 use App\Entity\Client;
+use App\Entity\Policy;
+use League\Csv\Reader;
 use App\Entity\Insurer;
 use App\Entity\Product;
-use App\Entity\Event;
 use App\Entity\Financials;
-use Doctrine\ORM\EntityManagerInterface;
-use League\Csv\Reader;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Console\Attribute\AsCommand;
+use App\Entity\BaseEntityInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:import-policies',
@@ -72,8 +73,7 @@ class ImportPoliciesCommand extends Command
         $csv = Reader::createFromPath($filePath, 'r');
         $csv->setHeaderOffset(0);
         $records = $csv->getRecords();
-        
-        $broker = $this->findOrCreateBroker($brokerName);
+        $broker = $this->findOrCreateEntity(new Broker(), $brokerName);
         $batchSize = 50;
         $i = 0;
 
@@ -104,12 +104,23 @@ class ImportPoliciesCommand extends Command
     {
         $policyNumber = trim($record['PolicyNumber']);
         $clientRef = trim($record['ClientRef']);
+        if (empty($clientRef)) {
+            throw new \Exception("Missing client reference for policy: $policyNumber");
+        }
         $policyType = trim($record['PolicyType']);
-        $ClientType = trim($record['ClientType']);
+        $clientType = trim($record['ClientType']);
+        $insurer_name = trim($record['Insurer']);
+        $product_name = trim($record['Product']);
+        $event_name = trim($record['BusinessEvent']);
+        $insurerPolicyNumber = trim($record['InsurerPolicyNumber']);
+        $businessDescription = trim($record['BusinessDescription']);
+        $rootPolicyRef = trim($record['RootPolicyRef']);
         $insuredAmount = floatval($record['InsuredAmount']);
         $premium = floatval($record['Premium']);
-
-        $premium = floatval($record['Insurer']);
+        $commission = floatval($record['Commission']);
+        $adminFee = floatval($record['AdminFee']);
+        $iPTAmount = floatval($record['IPTAmount']);
+        $policyFee = floatval($record['PolicyFee']);
 
         $startDate = $this->parseDate($record['StartDate']);
         $endDate = $this->parseDate($record['EndDate']);
@@ -121,8 +132,17 @@ class ImportPoliciesCommand extends Command
             throw new \Exception("Missing required fields for policy $policyNumber");
         }
 
-        $client = $this->findOrCreateClient($clientRef, $broker);
-
+        $client = $this->findOrCreateClient($clientRef, $clientType, $broker);
+        if (!$client || !$client->getId()) {
+            throw new \Exception("Client creation failed for reference: $clientRef");
+        }
+        $this->logger->info("Using Client ID: {$client->getId()} for Policy: $policyNumber");
+        
+        $this->logger->info("Using Client ID: {$client->getId()} for Policy: $policyNumber");
+        $insurer = $this->findOrCreateEntity(new Insurer(), $insurer_name, $broker);
+        $product = $this->findOrCreateEntity(new Product(), $product_name, $broker);
+        $event = $this->findOrCreateEntity(new Event(), $event_name, $broker);
+   
         // Check for existing policy
         $policyRepo = $this->entityManager->getRepository(Policy::class);
         $existingPolicy = $policyRepo->findOneBy(['policy_number' => $policyNumber, 'broker' => $broker]);
@@ -134,14 +154,20 @@ class ImportPoliciesCommand extends Command
         // Create new Policy
         $policy = new Policy();
         $policy->setPolicyNumber($policyNumber)
-            ->setClient($client)
-            ->setBroker($broker)
+            ->setInsurerPolicyNumber($insurerPolicyNumber)
+            ->setRootPolicyRef($rootPolicyRef)
             ->setPolicyType($policyType)
             ->setStartDate($startDate)
             ->setEndDate($endDate)
             ->setEffectiveDate($effectiveDate)
-            ->setRenewalDate($renewalDate);
-        
+            ->setRenewalDate($renewalDate)
+            ->setBusinessDescription($businessDescription)
+            ->setClient($client)
+            ->setInsurer($insurer)
+            ->setBroker($broker)
+            ->setProduct($product)
+            ->setEvent($event);
+    
         $this->entityManager->persist($policy);
 
         // Create Financials entry
@@ -150,53 +176,80 @@ class ImportPoliciesCommand extends Command
         $financials->setBroker($broker);
         $financials->setInsuredAmount($insuredAmount);
         $financials->setPremium($premium);
-        
+        $financials->setCommission($commission);
+        $financials->setAdminFee($adminFee);
+        $financials->setIptaAmount($iPTAmount);
+        $financials->setPolicyFee($policyFee);
+
         $this->entityManager->persist($financials);
     }
 
-    private function findOrCreateBroker(string $name): Broker
+    private function findOrCreateClient(string $clientRef, string $clientType, Broker $broker): Client
     {
-        // Normalize name to match how we store it in the database
-        $cleanedName = preg_replace('/\s+/', ' ', trim($name));
-        $cleanedName = preg_replace('/[^A-Za-z0-9 ]/', '', $cleanedName); // Remove special characters
-        $cleanedName = strtoupper($cleanedName);
+        $this->logger->info("Searching for client: $clientRef under broker: {$broker->getName()}");
 
-        //  Find broker by normalized name
-        $broker = $this->entityManager->getRepository(Broker::class)->findOneBy(['name' => $cleanedName]);
-
-        $broker = $this->entityManager->getRepository(Broker::class)->findOneBy(['name' => $name]);
-
-        if (!$broker) {
-            $broker = new Broker();
-            $broker->setName($name);
-            // Generate a unique broker code (e.g., BROKER_1, BROKER_2)
-            // $code = strtoupper(str_replace(' ', '_', $name)) . '_' . uniqid();
-            $this->entityManager->persist($broker);
-            $this->entityManager->flush();
-        }
-
-        return $broker;
-    }
-
-    private function findOrCreateClient(string $clientRef, Broker $broker): Client
-    {
         $client = $this->entityManager->getRepository(Client::class)->findOneBy([
             'client_ref' => $clientRef,
             'broker' => $broker
         ]);
 
         if (!$client) {
+            $this->logger->info("Client not found, creating new client: $clientRef");
+
             $client = new Client();
             $client->setClientRef($clientRef);
             $client->setBroker($broker);
-            $client->setClientType('Individual');
+            $client->setClientType($clientType);
+
             $this->entityManager->persist($client);
             $this->entityManager->flush();
+
+            $this->logger->info("New client created with ID: {$client->getId()}");
+        }
+
+        if (!$client || !$client->getId()) {
+            throw new \Exception("Failed to create or retrieve client for reference: $clientRef");
         }
 
         return $client;
     }
 
+    private function findOrCreateEntity(BaseEntityInterface $entity, string $entityName, ?Broker $broker = null): BaseEntityInterface
+    {
+        $entityClass = get_class($entity);
+    
+        $this->logger->info("Searching for $entityClass with name: $entityName" . ($broker ? " under broker: {$broker->getName()}" : ""));
+    
+        $criteria = ['name' => $entityName];
+    
+        // Ensure broker is added if required
+        if ($broker !== null && property_exists($entityClass, 'broker')) {
+            $criteria['broker'] = $broker;
+        }
+    
+        $repository = $this->entityManager->getRepository($entityClass);
+        $existingEntity = $repository->findOneBy($criteria);
+    
+        if (!$existingEntity) {
+            $this->logger->info("$entityClass not found, creating new instance: $entityName");
+    
+            $newEntity = new $entityClass();
+            $newEntity->setName($entityName);
+    
+            // Set broker only if the entity supports it
+            if ($broker !== null && property_exists($entityClass, 'broker')) {
+                $newEntity->setBroker($broker);
+            }
+    
+            $this->entityManager->persist($newEntity);
+            $this->entityManager->flush();
+    
+            return $newEntity;
+        }
+    
+        return $existingEntity;
+    }
+    
     private function parseDate(string $dateString, bool $allowNull = false): ?\DateTimeInterface
     {
         if (empty($dateString) && $allowNull) {
