@@ -59,6 +59,9 @@ class Broker implements BaseEntityInterface
     #[ORM\OneToMany(targetEntity: Financials::class, mappedBy: 'broker')]
     private Collection $financials;
 
+    #[ORM\OneToOne(mappedBy: 'broker', cascade: ['persist', 'remove'])]
+    private ?BrokerConfig $config = null;
+
     public function __construct()
     {
         $this->clients = new ArrayCollection();
@@ -266,6 +269,23 @@ class Broker implements BaseEntityInterface
                 $financial->setBroker(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getConfig(): ?BrokerConfig
+    {
+        return $this->config;
+    }
+
+    public function setConfig(BrokerConfig $config): static
+    {
+        // set the owning side of the relation if necessary
+        if ($config->getBroker() !== $this) {
+            $config->setBroker($this);
+        }
+
+        $this->config = $config;
 
         return $this;
     }

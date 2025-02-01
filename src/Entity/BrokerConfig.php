@@ -13,11 +13,10 @@ class BrokerConfig
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-
+    
     #[ORM\OneToOne(inversedBy: 'config', targetEntity: Broker::class, cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Broker $broker = null;
-
     #[ORM\Column(length: 50, unique: true)]
     #[Assert\NotBlank(message: 'File name cannot be blank')]
     private ?string $file_name = null;
