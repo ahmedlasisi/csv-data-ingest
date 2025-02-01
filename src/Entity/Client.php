@@ -15,7 +15,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[UniqueEntity(fields: ['broker', 'client_ref'], message: 'Broker has a client with client_ref: {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
 
-class Client 
+class Client
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
 
@@ -24,7 +24,7 @@ class Client
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50, unique: true)]
+    #[ORM\Column(length: 50)]
     #[Assert\NotBlank(message: 'Client Ref cannot be blank')]
     private ?string $client_ref = null;
 

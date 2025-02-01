@@ -14,7 +14,6 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[ORM\UniqueConstraint(columns: ['insurer_id', 'insurer_policy_number'])]
 #[UniqueEntity(fields: ['broker', 'policy_number'], message: 'Broker has a policy with policy number: {{ value }} on the system already')]
 #[UniqueEntity(fields: ['insurer', 'insurer_policy_number'], message: 'Broker has a policy with insurer policy number: {{ value }} on the system already')]
-#[UniqueEntity(fields: ['root_policy_ref'], message: 'There is a policy with root policy ref: {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
 
 class Policy
@@ -26,15 +25,15 @@ class Policy
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50, unique: true)]
+    #[ORM\Column(length: 50)]
     #[Assert\NotBlank(message: 'Policy Number cannot be blank')]
     private ?string $policy_number = null;
 
-    #[ORM\Column(length: 50, unique: true)]
+    #[ORM\Column(length: 50)]
     #[Assert\NotBlank(message: 'Insurer Policy Number cannot be blank')]
     private ?string $insurer_policy_number = null;
 
-    #[ORM\Column(length: 50, unique: true, nullable: true)]
+    #[ORM\Column(length: 50, nullable: true)]
     #[Assert\NotBlank(message: 'Root Policy Ref cannot be blank')]
     private ?string $root_policy_ref = null;
 
