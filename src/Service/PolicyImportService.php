@@ -14,6 +14,7 @@ use App\Entity\BrokerConfig;
 use Psr\Log\LoggerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 class PolicyImportService
 {
@@ -21,6 +22,20 @@ class PolicyImportService
     private LoggerInterface $logger;
     private string $dataDirectory;
     private ManagerRegistry $managerRegistry;
+
+    /**
+    * In–memory caches for performance.
+    *
+    * @var array<string, array<string, Client>>
+    */
+    private array $clientCache = [];
+
+    /**
+     * Generic entity caches keyed by entity class, broker id and lookup key.
+     *
+     * @var array<string, array<string, object>>
+     */
+    private array $entityCache = [];
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -47,7 +62,7 @@ class PolicyImportService
         }
     }
 
-    private function processBrokerConfig(BrokerConfig $config, $io): void
+    private function processBrokerConfig(BrokerConfig $config, SymfonyStyle $io): void
     {
         $filePath = $this->dataDirectory . '/' . $config->getFileName();
         $broker = $config->getBroker();
@@ -92,10 +107,12 @@ class PolicyImportService
                     if (++$i % $batchSize === 0) {
                         $this->entityManager->flush();
                         $this->entityManager->clear();
+                        $this->clearCaches();
                     }
                 } catch (\Throwable $e) {
                     $this->logger->error("Skipping record due to error: " . $e->getMessage());
                     $this->entityManager->clear(); // Prevent partial persistence issues
+                    $this->clearCaches();
                 }
             }
     
@@ -188,11 +205,16 @@ class PolicyImportService
 
     private function findOrCreateClient(string $clientRef, string $clientType, Broker $broker): Client
     {
+        $cacheKey = $broker->getId() . '-' . $clientRef;
+        if (isset($this->clientCache[$cacheKey])) {
+            return $this->clientCache[$cacheKey];
+        }
+        
         if (!$this->entityManager->isOpen()) {
             $this->logger->error("EntityManager was closed. Resetting...");
             $this->resetEntityManager();
         }
-
+        
         $repository = $this->entityManager->getRepository(Client::class);
     
         // Check if client already exists before inserting
@@ -202,6 +224,7 @@ class PolicyImportService
         ]);
 
         if ($client) {
+            $this->clientCache[$cacheKey] = $client;
             return $client;
         }
 
@@ -238,6 +261,7 @@ class PolicyImportService
             throw new \Exception("Critical Error: Client creation failed for reference '$clientRef'.");
         }
 
+        $this->clientCache[$cacheKey] = $client;
         return $client;
     }
 
@@ -245,6 +269,15 @@ class PolicyImportService
     {
         if (!$name) {
             return null;
+        }
+
+        $brokerKey = $broker ? $broker->getId() : 'none';
+        $cacheKey  = $brokerKey . '-' . $name;
+        if (!isset($this->entityCache[$entityClass])) {
+            $this->entityCache[$entityClass] = [];
+        }
+        if (isset($this->entityCache[$entityClass][$cacheKey])) {
+            return $this->entityCache[$entityClass][$cacheKey];
         }
 
         $criteria = ['name' => $name];
@@ -275,6 +308,7 @@ class PolicyImportService
             }
         }
 
+        $this->entityCache[$entityClass][$cacheKey] = $entity;
         return $entity;
     }
 
@@ -302,5 +336,14 @@ class PolicyImportService
         }
 
         throw new \Exception("Invalid date format: $dateString");
+    }
+
+    /**
+     * Clear in–memory caches.
+     */
+    private function clearCaches(): void
+    {
+        $this->clientCache = [];
+        $this->entityCache = [];
     }
 }
