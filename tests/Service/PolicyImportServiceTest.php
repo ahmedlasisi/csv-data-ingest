@@ -5,22 +5,15 @@ namespace App\Tests\Service;
 use App\Entity\Broker;
 use App\Entity\BrokerConfig;
 use App\Entity\Client;
-use App\Entity\Event;
-use App\Entity\Financials;
 use App\Entity\Insurer;
-use App\Entity\Policy;
-use App\Entity\Product;
 use App\Service\PolicyImportService;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use League\Csv\Reader;
 use PHPUnit\Framework\MockObject\MockObject;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use ReflectionClass;
 use ReflectionMethod;
 
 class PolicyImportServiceTest extends TestCase
