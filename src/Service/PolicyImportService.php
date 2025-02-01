@@ -36,6 +36,7 @@ class PolicyImportService
      * @var array<string, array<string, object>>
      */
     private array $entityCache = [];
+    private bool $useCache = true;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -206,7 +207,7 @@ class PolicyImportService
     private function findOrCreateClient(string $clientRef, string $clientType, Broker $broker): Client
     {
         $cacheKey = $broker->getId() . '-' . $clientRef;
-        if (isset($this->clientCache[$cacheKey])) {
+        if ($this->useCache && isset($this->clientCache[$cacheKey])) {
             return $this->clientCache[$cacheKey];
         }
         
@@ -224,7 +225,9 @@ class PolicyImportService
         ]);
 
         if ($client) {
-            $this->clientCache[$cacheKey] = $client;
+            if ($this->useCache) {
+                $this->clientCache[$cacheKey] = $client;
+            }
             return $client;
         }
 
@@ -261,7 +264,9 @@ class PolicyImportService
             throw new \Exception("Critical Error: Client creation failed for reference '$clientRef'.");
         }
 
-        $this->clientCache[$cacheKey] = $client;
+        if ($this->useCache) {
+            $this->clientCache[$cacheKey] = $client;
+        }
         return $client;
     }
 
@@ -273,10 +278,10 @@ class PolicyImportService
 
         $brokerKey = $broker ? $broker->getId() : 'none';
         $cacheKey  = $brokerKey . '-' . $name;
-        if (!isset($this->entityCache[$entityClass])) {
+        if ($this->useCache && !isset($this->entityCache[$entityClass])) {
             $this->entityCache[$entityClass] = [];
         }
-        if (isset($this->entityCache[$entityClass][$cacheKey])) {
+        if ($this->useCache && isset($this->entityCache[$entityClass][$cacheKey])) {
             return $this->entityCache[$entityClass][$cacheKey];
         }
 
@@ -341,9 +346,14 @@ class PolicyImportService
     /**
      * Clear in–memory caches.
      */
-    private function clearCaches(): void
+    public function clearCaches(): void
     {
         $this->clientCache = [];
         $this->entityCache = [];
+    }
+
+    public function setUseCache(bool $useCache): void
+    {
+        $this->useCache = $useCache;
     }
 }
