@@ -1,5 +1,3 @@
 services:
-  _defaults:
+  Doctrine\ORM\EntityManagerInterface:
     public: true
-
-  Doctrine\ORM\EntityManagerInterface: "@doctrine.orm.entity_manager"
