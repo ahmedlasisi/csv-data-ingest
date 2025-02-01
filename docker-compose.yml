@@ -9,12 +9,13 @@ services:
       - .env
     environment:
       APP_ENV: ${APP_ENV}
+      SERVER_NAME: 0.0.0.0:9000
 
       DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?serverVersion=${DB_VERSION}&charset=utf8mb4
 
       # DATABASE_URL: "pgsql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
     ports:
-      - "8000:8000"
+      - "9000:9000"
     volumes:
       - .:/var/www/symfony # Mount local files inside the container
       - /var/www/symfony/var/cache # Exclude cache
