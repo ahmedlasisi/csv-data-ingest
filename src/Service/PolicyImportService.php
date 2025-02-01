@@ -270,7 +270,7 @@ class PolicyImportService
         return $client;
     }
 
-    private function findOrCreateEntity(string $entityClass, string $name, ?Broker $broker = null)
+    public function findOrCreateEntity(string $entityClass, string $name, ?Broker $broker = null)
     {
         if (!$name) {
             return null;
@@ -326,6 +326,26 @@ class PolicyImportService
             }
         }
         return true;
+    }
+
+    public function validateConfigMapping(array $mapping): bool
+    {
+        $requiredKeys = [
+            "PolicyNumber", "InsuredAmount", "StartDate", "EndDate", "AdminFee",
+            "BusinessDescription", "BusinessEvent", "ClientType", "ClientRef",
+            "Commission", "EffectiveDate", "InsurerPolicyNumber", "IPTAmount",
+            "Premium", "PolicyFee", "PolicyType", "Insurer", "RenewalDate",
+            "RootPolicyRef", "Product"
+        ];
+
+        // Check if all required keys are present in the mapping
+        foreach ($requiredKeys as $key) {
+            if (!array_key_exists($key, $mapping) || !is_string($mapping[$key]) || empty(trim($mapping[$key]))) {
+                return false; // If missing or not a valid string, return false
+            }
+        }
+
+        return true; // Mapping is valid
     }
 
     private function parseDate(string $dateString, bool $allowNull = false): ?\DateTimeInterface
