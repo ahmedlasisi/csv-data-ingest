@@ -15,11 +15,14 @@ services:
 
       # DATABASE_URL: "pgsql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
     ports:
-      - "9000:9000"
+      - "9000:80"
     volumes:
       - .:/var/www/symfony # Mount local files inside the container
-      - /var/www/symfony/var/cache # Exclude cache
-      - /var/www/symfony/var/logs # Exclude logs
+      # - /var/www/symfony/var/cache # Exclude cache
+      # - /var/www/symfony/var/logs # Exclude logs
+      - ./var/cache:/var/www/symfony/var/cache
+      - ./var/logs:/var/www/symfony/var/logs
+
     # depends_on:
     #   - database
     networks:
