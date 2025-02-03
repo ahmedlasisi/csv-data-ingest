@@ -24,10 +24,10 @@ class Broker implements BaseEntityInterface
     private ?string $name = null;
 
     /**
-     * @var Collection<int, Client>
+     * @var Collection<int, BrokerClient>
      */
-    #[ORM\OneToMany(targetEntity: Client::class, mappedBy: 'broker')]
-    private Collection $clients;
+    #[ORM\OneToMany(targetEntity: BrokerClient::class, mappedBy: 'broker')]
+    private Collection $broker_clients;
 
     /**
      * @var Collection<int, Insurer>
@@ -64,7 +64,7 @@ class Broker implements BaseEntityInterface
 
     public function __construct()
     {
-        $this->clients = new ArrayCollection();
+        $this->broker_clients = new ArrayCollection();
         $this->insurers = new ArrayCollection();
         $this->products = new ArrayCollection();
         $this->events = new ArrayCollection();
@@ -94,29 +94,29 @@ class Broker implements BaseEntityInterface
     }
 
     /**
-     * @return Collection<int, Client>
+     * @return Collection<int, BrokerClient>
      */
-    public function getClients(): Collection
+    public function getBrokerClients(): Collection
     {
-        return $this->clients;
+        return $this->broker_clients;
     }
 
-    public function addClient(Client $client): static
+    public function addBrokerClient(BrokerClient $broker_client): static
     {
-        if (!$this->clients->contains($client)) {
-            $this->clients->add($client);
-            $client->setBroker($this);
+        if (!$this->broker_clients->contains($broker_client)) {
+            $this->broker_clients->add($broker_client);
+            $broker_client->setBroker($this);
         }
 
         return $this;
     }
 
-    public function removeClient(Client $client): static
+    public function removeBrokerClient(BrokerClient $broker_client): static
     {
-        if ($this->clients->removeElement($client)) {
+        if ($this->broker_clients->removeElement($broker_client)) {
             // set the owning side to null (unless already changed)
-            if ($client->getBroker() === $this) {
-                $client->setBroker(null);
+            if ($broker_client->getBroker() === $this) {
+                $broker_client->setBroker(null);
             }
         }
 

@@ -3,19 +3,19 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use App\Repository\ClientRepository;
+use App\Repository\BrokerClientRepository;
 use App\Entity\Traits\TimestampableTrait;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
-#[ORM\Entity(repositoryClass: ClientRepository::class)]
+#[ORM\Entity(repositoryClass: BrokerClientRepository::class)]
 #[ORM\UniqueConstraint(columns: ['broker_id', 'client_ref'])]
 #[UniqueEntity(fields: ['broker', 'client_ref'], message: 'Broker has a client with client_ref: {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
 
-class Client
+class BrokerClient
 {
     use TimestampableTrait; // inherits createdAt & updatedAt
 
@@ -87,7 +87,7 @@ class Client
     {
         if (!$this->policies->contains($policy)) {
             $this->policies->add($policy);
-            $policy->setClient($this);
+            $policy->setBrokerClient($this);
         }
 
         return $this;
@@ -97,8 +97,8 @@ class Client
     {
         if ($this->policies->removeElement($policy)) {
             // set the owning side to null (unless already changed)
-            if ($policy->getClient() === $this) {
-                $policy->setClient(null);
+            if ($policy->getBrokerClient() === $this) {
+                $policy->setBrokerClient(null);
             }
         }
 

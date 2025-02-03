@@ -55,9 +55,9 @@ class Policy
     #[ORM\Column(length: 140, nullable: true)]
     private ?string $business_description = null;
 
-    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'policies')]
+    #[ORM\ManyToOne(targetEntity: BrokerClient::class, inversedBy: 'policies')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Client $client = null;
+    private ?BrokerClient $broker_client = null;
 
     #[ORM\ManyToOne(inversedBy: 'policies')]
     #[ORM\JoinColumn(nullable: false)]
@@ -190,14 +190,14 @@ class Policy
         return $this;
     }
 
-    public function getClient(): ?Client
+    public function getBrokerClient(): ?BrokerClient
     {
-        return $this->client;
+        return $this->broker_client;
     }
 
-    public function setClient(?Client $client): static
+    public function setBrokerClient(?BrokerClient $broker_client): static
     {
-        $this->client = $client;
+        $this->broker_client = $broker_client;
 
         return $this;
     }

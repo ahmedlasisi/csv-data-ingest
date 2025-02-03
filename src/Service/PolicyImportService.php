@@ -4,7 +4,7 @@ namespace App\Service;
 
 use App\Entity\Event;
 use App\Entity\Broker;
-use App\Entity\Client;
+use App\Entity\BrokerClient;
 use App\Entity\Policy;
 use League\Csv\Reader;
 use App\Entity\Insurer;
@@ -26,7 +26,7 @@ class PolicyImportService
     /**
     * In–memory caches for performance.
     *
-    * @var array<string, array<string, Client>>
+    * @var array<string, array<string, BrokerClient>>
     */
     private array $clientCache = [];
 
@@ -153,7 +153,7 @@ class PolicyImportService
             return;
         }
 
-        $client = $this->findOrCreateClient($clientRef, trim($record['ClientType'] ?? ''), $broker);
+        $client = $this->findOrCreateBrokerClient($clientRef, trim($record['ClientType'] ?? ''), $broker);
         $insurer = $this->findOrCreateEntity(Insurer::class, trim($record['Insurer'] ?? ''), $broker);
         $product = $this->findOrCreateEntity(Product::class, trim($record['Product'] ?? ''), $broker);
         $event = $this->findOrCreateEntity(Event::class, trim($record['BusinessEvent'] ?? ''), $broker);
@@ -174,7 +174,7 @@ class PolicyImportService
             ->setEffectiveDate($this->parseDate($record['EffectiveDate'] ?? ''))
             ->setRenewalDate($this->parseDate($record['RenewalDate'] ?? '', true))
             ->setBusinessDescription(trim($record['BusinessDescription'] ?? ''))
-            ->setClient($client)
+            ->setBrokerClient($client)
             ->setInsurer($insurer)
             ->setBroker($broker)
             ->setProduct($product)
@@ -204,7 +204,7 @@ class PolicyImportService
         }
     }
 
-    private function findOrCreateClient(string $clientRef, string $clientType, Broker $broker): Client
+    private function findOrCreateBrokerClient(string $clientRef, string $clientType, Broker $broker): BrokerClient
     {
         $cacheKey = $broker->getId() . '-' . $clientRef;
         if ($this->useCache && isset($this->clientCache[$cacheKey])) {
@@ -216,7 +216,7 @@ class PolicyImportService
             $this->resetEntityManager();
         }
         
-        $repository = $this->entityManager->getRepository(Client::class);
+        $repository = $this->entityManager->getRepository(BrokerClient::class);
     
         // Check if client already exists before inserting
         $client = $repository->findOneBy([
@@ -234,7 +234,7 @@ class PolicyImportService
         try {
             $this->entityManager->beginTransaction();
 
-            $client = new Client();
+            $client = new BrokerClient();
             $client->setClientRef($clientRef)
                    ->setBroker($broker)
                    ->setClientType($clientType);
@@ -254,14 +254,14 @@ class PolicyImportService
             ]);
 
             if (!$client) {
-                throw new \Exception("Critical Error: Client creation failed for reference '$clientRef' due to duplicate entry.");
+                throw new \Exception("Critical Error: Broker Client creation failed for reference '$clientRef' due to duplicate entry.");
             }
         } catch (\Throwable $e) {
             $this->entityManager->rollback();
             $this->entityManager->clear();
 
             $this->logger->error("Failed to persist client: " . $e->getMessage());
-            throw new \Exception("Critical Error: Client creation failed for reference '$clientRef'.");
+            throw new \Exception("Critical Error: Broker Client creation failed for reference '$clientRef'.");
         }
 
         if ($this->useCache) {

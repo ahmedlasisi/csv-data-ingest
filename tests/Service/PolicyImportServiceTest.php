@@ -4,7 +4,7 @@ namespace App\Tests\Service;
 
 use App\Entity\Broker;
 use App\Entity\BrokerConfig;
-use App\Entity\Client;
+use App\Entity\BrokerClient;
 use App\Entity\Insurer;
 use App\Service\PolicyImportService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -195,29 +195,29 @@ class PolicyImportServiceTest extends TestCase
         // When findOneBy is called, return null to simulate a missing client.
         $clientRepository->method('findOneBy')->willReturn(null);
 
-        // Configure the entity manager to return our repository when queried for Client::class.
+        // Configure the entity manager to return our repository when queried for BrokerClient::class.
         $this->entityManager
             ->method('getRepository')
-            ->with(Client::class)
+            ->with(BrokerClient::class)
             ->willReturn($clientRepository);
 
         // Expect beginTransaction, persist, flush, and commit calls.
         $this->entityManager->expects($this->once())->method('beginTransaction');
         $this->entityManager->expects($this->once())->method('persist')
              ->with($this->callback(function ($client) use ($clientRef, $clientType) {
-                 return $client instanceof Client &&
+                 return $client instanceof BrokerClient &&
                         $client->getClientRef() === $clientRef &&
                         $client->getClientType() === $clientType;
              }));
         $this->entityManager->expects($this->once())->method('flush');
         $this->entityManager->expects($this->once())->method('commit');
 
-        $refMethod = new \ReflectionMethod($this->service, 'findOrCreateClient');
+        $refMethod = new \ReflectionMethod($this->service, 'findOrCreateBrokerClient');
         $refMethod->setAccessible(true);
 
-        /** @var Client $client */
+        /** @var BrokerClient $client */
         $client = $refMethod->invoke($this->service, $clientRef, $clientType, $this->broker);
-        $this->assertInstanceOf(Client::class, $client);
+        $this->assertInstanceOf(BrokerClient::class, $client);
 
         // Calling a second time should return the cached client.
         $clientCached = $refMethod->invoke($this->service, $clientRef, $clientType, $this->broker);
