@@ -2,17 +2,15 @@
 
 namespace App\Entity;
 
-use App\Entity\Traits\UuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\BrokerConfigRepository;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\HasLifecycleCallbacks]
 #[ORM\Entity(repositoryClass: BrokerConfigRepository::class)]
+#[ORM\HasLifecycleCallbacks]
+
 class BrokerConfig
 {
-    use UuidTrait;
-    
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
