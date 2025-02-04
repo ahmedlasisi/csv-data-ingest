@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Traits\UuidTrait;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\BrokerRepository;
 use App\Entity\Traits\TimestampableTrait;
@@ -13,6 +14,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 #[ORM\HasLifecycleCallbacks]
 class Broker implements BaseEntityInterface
 {
+    use UuidTrait;
     use TimestampableTrait; // inherits createdAt & updatedAt
 
     #[ORM\Id]
