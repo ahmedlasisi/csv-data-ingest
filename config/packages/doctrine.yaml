@@ -27,6 +27,9 @@ doctrine:
     identity_generation_preferences:
       Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
     auto_mapping: true
+    dql:
+      numeric_functions:
+        DATEDIFF: App\Doctrine\DQL\DatediffFunction
     mappings:
       App:
         type: attribute
