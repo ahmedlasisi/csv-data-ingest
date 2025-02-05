@@ -29,6 +29,20 @@ services:
       - mysqlmariadb_default
       # - broker_network
 
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
+    driver: local
+
   # database:
   #   image: postgres:16-alpine
   #   container_name: data_ingestion_db
