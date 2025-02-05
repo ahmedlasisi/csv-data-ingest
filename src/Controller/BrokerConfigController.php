@@ -4,17 +4,18 @@ namespace App\Controller;
 
 use App\Entity\Broker;
 use App\Entity\BrokerConfig;
+use App\Service\CacheHelper;
+use Symfony\Component\Uid\Uuid;
 use App\Service\PolicyImportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
-use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/brokers')]
 #[IsGranted('ROLE_ADMIN')]
@@ -23,14 +24,17 @@ class BrokerConfigController extends AbstractController
     private EntityManagerInterface $entityManager;
     private PolicyImportService $policyImportService;
     private ValidatorInterface $validator;
+    private CacheHelper $cacheHelper;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         PolicyImportService $policyImportService,
+        CacheHelper $cacheHelper,
         ValidatorInterface $validator
     ) {
         $this->entityManager = $entityManager;
         $this->policyImportService = $policyImportService;
+        $this->cacheHelper = $cacheHelper;
         $this->validator = $validator;
     }
 
@@ -115,7 +119,13 @@ class BrokerConfigController extends AbstractController
             $config->setFileMapping($data['file_mapping']);
         }
 
-        return $this->persistAndReturnResponse($config, 'Broker config updated successfully');
+        $this->entityManager->flush();
+
+        // Clear broker-related cache
+        $this->cacheHelper->invalidate('aggregation_by_broker');
+        $this->cacheHelper->invalidate('aggregation_summary');
+
+        return $this->json(['message' => 'Broker config updated successfully']);
     }
 
     /**
