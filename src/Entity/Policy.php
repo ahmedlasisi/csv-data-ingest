@@ -12,6 +12,8 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[ORM\Entity(repositoryClass: PolicyRepository::class)]
 #[ORM\UniqueConstraint(columns: ['broker_id', 'policy_number'])]
 #[ORM\UniqueConstraint(columns: ['insurer_id', 'insurer_policy_number'])]
+#[ORM\Index(fields: ['start_date'])]
+#[ORM\Index(fields: ['end_date'])]
 #[UniqueEntity(fields: ['broker', 'policy_number'], message: 'Broker has a policy with policy number: {{ value }} on the system already')]
 #[UniqueEntity(fields: ['insurer', 'insurer_policy_number'], message: 'Broker has a policy with insurer policy number: {{ value }} on the system already')]
 #[ORM\HasLifecycleCallbacks]
