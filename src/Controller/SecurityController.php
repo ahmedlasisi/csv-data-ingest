@@ -5,16 +5,16 @@ namespace App\Controller;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\Security\Core\Exception\UserAlreadyExistsException;
 
-#[Route('/api')]
 class SecurityController extends AbstractController
 {
     private EntityManagerInterface $entityManager;
@@ -34,7 +34,7 @@ class SecurityController extends AbstractController
     /**
      * Registers a new user securely.
      */
-    #[Route('/register', methods: ['POST'])]
+    #[Route('/api/register', methods: ['POST'], name: 'api_login')]
     public function register(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -89,5 +89,20 @@ class SecurityController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json(['message' => 'User registered successfully'], JsonResponse::HTTP_CREATED);
+    }
+
+    #[Route('/', name: 'app_login')]
+    public function login(AuthenticationUtils $authUtils): Response
+    {
+        return $this->render('auth/login.html.twig', [
+            'error' => $authUtils->getLastAuthenticationError(),
+            'last_username' => $authUtils->getLastUsername(),
+        ]);
+    }
+
+    #[Route('/logout', name: 'app_logout')]
+    public function logout(): void
+    {
+        throw new \LogicException('This should never be reached!');
     }
 }

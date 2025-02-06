@@ -33,11 +33,15 @@ security:
     main:
       lazy: true
       provider: app_user_provider
-      # form_login:
-      #   login_path: app_login
-      #   check_path: app_login
-      # logout:
-      #   path: app_logout
+      form_login:
+        login_path: app_login
+        check_path: app_login
+        username_parameter: email
+        password_parameter: password
+        enable_csrf: true
+        success_handler: App\Security\LoginSuccessHandler
+      logout:
+        path: app_logout
       # remember_me:
       #   secret: "%kernel.secret%"
       #   lifetime: 604800
@@ -56,6 +60,14 @@ security:
     - { path: ^/api/login, roles: PUBLIC_ACCESS }
     # - { path: ^/api/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
     - { path: ^/api/brokers/config, roles: ROLE_ADMIN } # Restrict access to admins only
+    - { path: ^/admin, roles: ROLE_ADMIN }
+    - { path: ^/broker, roles: ROLE_BROKER }
+    - { path: ^/dashboard, roles: ROLE_USER }
+
+  role_hierarchy:
+    ROLE_SUPER_ADMIN: [ROLE_ADMIN]
+    ROLE_ADMIN: [ROLE_BROKER]
+    ROLE_BROKER: [ROLE_USER]
 
 when@test:
   security:
