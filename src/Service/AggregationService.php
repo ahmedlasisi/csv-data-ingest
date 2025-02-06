@@ -9,9 +9,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class AggregationService
 {
-    private const CACHE_TTL_SUMMARY = 1800; // 30 minutes
-    private const CACHE_TTL_BROKER = 900;   // 15 minutes
-
     public function __construct(
         private readonly BrokerRepository $brokerRepository,
         private readonly PolicyRepository $policyRepository,
@@ -29,35 +26,21 @@ class AggregationService
             }
 
             return $broker;
-        });
+        }, PolicyRepository::CACHE_TTL_BROKER);
     }
 
     public function getAggregatedDataSummary(): array
     {
-        return $this->cacheHelper->get(
-            'aggregation_summary',
-            fn () => $this->policyRepository->findDataSummary(),
-            self::CACHE_TTL_SUMMARY
-        );
+        return $this->policyRepository->findDataSummary();
     }
 
     public function getAggregatedBrokersData(): array
     {
-        return $this->cacheHelper->get(
-            'aggregation_by_broker',
-            fn () => $this->policyRepository->findBrokerAggregation(),
-            self::CACHE_TTL_SUMMARY
-        );
+        return $this->policyRepository->findBrokerAggregation();
     }
 
     public function getAggregationDataByBroker(Broker $broker): array
     {
-        $cacheKey = 'aggregation_broker_' . $broker->getUuid();
-
-        return $this->cacheHelper->get(
-            $cacheKey,
-            fn () => $this->policyRepository->findByBroker($broker),
-            self::CACHE_TTL_BROKER
-        );
+        return $this->policyRepository->findByBroker($broker);
     }
 }
