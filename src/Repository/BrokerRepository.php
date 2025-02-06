@@ -16,6 +16,17 @@ class BrokerRepository extends ServiceEntityRepository
         parent::__construct($registry, Broker::class);
     }
 
+    public function searchByName(string $query): array
+    {
+        return $this->createQueryBuilder('b')
+            ->select('b.uuid, b.name')
+            ->where('b.name LIKE :query')
+            ->setParameter('query', "%{$query}%")
+            ->setMaxResults(5)
+            ->getQuery()
+            ->getArrayResult();
+    }
+
     //    /**
     //     * @return Broker[] Returns an array of Broker objects
     //     */
