@@ -47,19 +47,19 @@ class PolicyRepository extends ServiceEntityRepository
     public function findAllQuery(bool $isByBrokers = false): QueryBuilder
     {
         $qb = $this->createQueryBuilder('p')
-            ->select([
-                $isByBrokers ? 'b.uuid AS broker_uuid' : "'' AS brokerUuid",
-                $isByBrokers ? 'b.name AS broker_name' : "'All Brokers' AS brokerName",
-                'COUNT(DISTINCT p.id) AS totalPolicies',
-                'COUNT(DISTINCT c.id) AS totalClients',
-                'SUM(f.insured_amount) as totalInsuredAmount',
-                'SUM(f.premium) as totalPremium',
-                'AVG(DATEDIFF(p.end_date, p.start_date)) AS avg_policy_duration',
-                'SUM(CASE WHEN p.start_date <= CURRENT_DATE() AND p.end_date >= CURRENT_DATE() THEN 1 ELSE 0 END) as activePolicies'
-            ])
-            ->innerJoin('p.broker', 'b')
-            ->innerJoin('p.broker_client', 'c')
-            ->leftJoin('p.financials', 'f');
+        ->select([
+            $isByBrokers ? 'b.uuid AS broker_uuid' : "'' AS brokerUuid",
+            $isByBrokers ? 'b.name AS broker_name' : "'All Brokers' AS brokerName" ,
+            'COUNT(DISTINCT p.id) AS totalPolicies',
+            'COUNT(DISTINCT c.id) AS totalClients',
+            'COALESCE(SUM(f.insured_amount), 0) as totalInsuredAmount',
+            'COALESCE(SUM(f.premium), 0) as totalPremium',
+            'COALESCE(AVG(DATEDIFF(p.end_date, p.start_date)), 0) AS avg_policy_duration',
+            'COALESCE(SUM(CASE WHEN p.start_date <= CURRENT_DATE() AND p.end_date >= CURRENT_DATE() THEN 1 ELSE 0 END), 0) as activePolicies'
+        ])
+        ->innerJoin('p.broker', 'b')
+        ->innerJoin('p.broker_client', 'c')
+        ->leftJoin('p.financials', 'f');
 
         if ($isByBrokers) {
             $qb->groupBy('b.id')->orderBy('broker_name', 'ASC');
