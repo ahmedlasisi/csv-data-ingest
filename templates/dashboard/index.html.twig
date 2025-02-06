@@ -5,20 +5,137 @@
 {% endblock %}
 
 {% block body %}
-  <div class="container">
-    <h2>
-      Insurance Dashboard
-    </h2>
+  <div class="container mt-4">
+    <h1 class="mb-4">
+      Dashboard
+    </h1>
 
-    <div>
-      <label>
-        Search Broker:
-      </label>
-      <input type="text" id="broker-search" data-controller="dashboard-search"></div>
-
-      <div id="dashboard-summary" data-turbo-frame="dashboard-summary">
-        {% include 'dashboard/_summary.html.twig' with { 'summary': summary } %}
+    <!-- Aggregated Data -->
+    <div class="row">
+      <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+          <div class="card-header">
+            Total Policies
+          </div>
+          <div class="card-body">
+            <h4 class="card-title">
+              {{ aggregatedData.totalPolicies ?? 0 }}
+            </h4>
+          </div>
+        </div>
       </div>
+      <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+          <div class="card-header">
+            Total Customers
+          </div>
+          <div class="card-body">
+            <h4 class="card-title">
+              {{ aggregatedData.totalClients ?? 0 }}
+            </h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+          <div class="card-header">
+            Total Insured Amount
+          </div>
+          <div class="card-body">
+            <h4 class="card-title">
+              £
+              {{ aggregatedData.totalInsuredAmount|number_format(2, '.', ',') }}
+            </h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+          <div class="card-header">
+            Avg. Policy Duration (days)
+          </div>
+          <div class="card-body">
+            <h4 class="card-title">
+              {{ aggregatedData.avgPolicyDuration|number_format(2) }}
+            </h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Broker Search -->
+    <div class="mt-4">
+      <h3>
+        Search Broker Policies
+      </h3>
+      <form method="GET" action="{{ path('dashboard') }}">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" name="broker" placeholder="Enter broker name" value="{{ brokerName }}">
+            <button class="btn btn-primary" type="submit">
+              Search
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Broker Policies -->
+      {% if brokerName and brokerPolicies is not empty %}
+        <h4>
+          Active Policies for "
+          {{ brokerName }}
+          "
+        </h4>
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>
+                Total Policy
+              </th>
+              <th>
+                Total Clients
+              </th>
+              <th>
+                Total Insured Amount
+              </th>
+              <th>
+                Total Premium
+              </th>
+              <th>
+                Avg. Policy Duration (days)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for policy in brokerPolicies %}
+              <tr>
+                <td>
+                  {{ policy.totalPolicies }}
+                </td>
+                <td>
+                  {{ policy.totalClients }}
+                </td>
+                <td>
+                  £
+                  {{ policy.totalInsuredAmount|number_format(2, '.', ',') }}
+                </td>
+                <td>
+                  £
+                  {{ policy.totalPremium|number_format(2, '.', ',') }}
+                </td>
+                <td>
+                  {{ policy.avgPolicyDuration|number_format(2) }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% elseif brokerName %}
+        <p class="alert alert-warning">
+          No policies found for "
+          {{ brokerName }}
+          ".
+        </p>
+      {% endif %}
     </div>
   {% endblock %}
   

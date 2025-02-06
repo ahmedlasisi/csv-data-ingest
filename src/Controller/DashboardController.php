@@ -28,12 +28,29 @@ class DashboardController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'dashboard')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $summary = $this->policyRepository->findDataSummary();
+        // Fetch Aggregated Data for Active Policies
+        $aggregatedData = $this->policyRepository->findDataSummary();
+
+        // Search Broker and Fetch Related Policies
+        $brokerName = $request->query->get('broker');
+        $brokerPolicies = [];
+
+        if ($brokerName) {
+            $broker = $this->brokerRepository->findOneBy(['name' => $brokerName]);
+
+            if ($broker) {
+                $brokerPolicies = $this->policyRepository->findByBroker($broker);
+            } else {
+                $this->addFlash('error', 'Broker not found.');
+            }
+        }
 
         return $this->render('dashboard/index.html.twig', [
-            'summary' => $summary[0],
+            'aggregatedData' => $aggregatedData[0],
+            'brokerName' => $brokerName,
+            'brokerPolicies' => $brokerPolicies
         ]);
     }
 
