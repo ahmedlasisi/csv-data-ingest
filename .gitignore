@@ -29,3 +29,9 @@
 ###< lexik/jwt-authentication-bundle ###
 .docker/.DS_Store
 .DS_Store
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+/node_modules
