@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+  Dashboard
+{% endblock %}
+
+{% block body %}
+  <div class="container">
+    <h2>
+      Insurance Dashboard
+    </h2>
+
+    <div>
+      <label>
+        Search Broker:
+      </label>
+      <input type="text" id="broker-search" data-controller="dashboard-search"></div>
+
+      <div id="dashboard-summary" data-turbo-frame="dashboard-summary">
+        {% include 'dashboard/_summary.html.twig' with { 'summary': summary } %}
+      </div>
+    </div>
+  {% endblock %}
+  

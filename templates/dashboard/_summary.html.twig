@@ -1,0 +1,34 @@
+<table>
+  <thead>
+    <tr>
+      <th>
+        Total Policies
+      </th>
+      <th>
+        Total Customers
+      </th>
+      <th>
+        Total Insured Amount
+      </th>
+      <th>
+        Avg. Policy Duration (Days)
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        {{ summary.totalPolicies }}
+      </td>
+      <td>
+        {{ summary.totalClients }}
+      </td>
+      <td>
+        {{ summary.totalInsuredAmount|number_format(2) }}
+      </td>
+      <td>
+        {{ summary.avg_policy_duration|number_format(2) }}
+      </td>
+    </tr>
+  </tbody>
+</table>
