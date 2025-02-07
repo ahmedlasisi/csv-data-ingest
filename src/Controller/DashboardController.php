@@ -36,40 +36,26 @@ class DashboardController extends AbstractController
         // Search Broker and Fetch Related Policies
         $brokerName = $request->query->get('broker');
         $brokerPolicies = [];
-
+       
         if ($brokerName) {
             $broker = $this->brokerRepository->findOneBy(['name' => $brokerName]);
 
-            if ($broker) {
-                $brokerPolicies = $this->policyRepository->findByBroker($broker);
-            } else {
-                $this->addFlash('error', 'Broker not found.');
+            if (!$broker) {
+                $this->addFlash('error', "'{$brokerName}' does not exist.");
+                return $this->redirectToRoute('dashboard');
+            }
+
+            $brokerPolicies = $this->policyRepository->findByBroker($broker);
+            if(empty($brokerPolicies)) {
+                $message = "No active policy found for '".$broker->getName()."'";
+                $this->addFlash('info', $message);
             }
         }
 
         return $this->render('dashboard/index.html.twig', [
-            'aggregatedData' => $aggregatedData[0],
+            'aggregatedData' => $aggregatedData[0] ?? [],
             'brokerName' => $brokerName,
             'brokerPolicies' => $brokerPolicies
-        ]);
-    }
-
-    #[Route('/dashboard/search-broker', name: 'search_broker', methods: ['GET'])]
-    public function searchBroker(Request $request): JsonResponse
-    {
-        $query = $request->query->get('q', '');
-        $brokers = $this->brokerRepository->searchByName($query);
-
-        return $this->json($brokers);
-    }
-
-    #[Route('/dashboard/broker/{uuid}', name: 'dashboard_broker')]
-    public function dashboardByBroker(string $uuid): Response
-    {
-        $broker =  $this->aggregationService->getBrokerByUuid($uuid);
-        $summary = $this->policyRepository->findByBroker($broker);
-        return $this->render('dashboard/_summary.html.twig', [
-            'summary' => $summary,
         ]);
     }
 }

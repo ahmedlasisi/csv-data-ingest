@@ -15,6 +15,7 @@
     <body>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
+
                 <a class="navbar-brand" href="{{ path('dashboard') }}">
                     {{ site_name }}
                 </a>
@@ -24,9 +25,14 @@
                             Hello,
                             {{ app.user.email }}
                         </span>
-                        <a class="btn btn-outline-light btn-sm" href="{{ path('app_logout') }}">
+                        <a class="btn btn-outline-light btn-sm" href="">
+                            Broker Onboard Settings
+                        </a>
+
+                        <a class="btn btn-outline-light btn-sm ml-2" href="{{ path('app_logout') }}">
                             Logout
                         </a>
+
                     {% else %}
                         <a class="btn btn-outline-light btn-sm" href="{{ path('app_login') }}">
                             Login
