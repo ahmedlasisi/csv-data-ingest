@@ -27,7 +27,7 @@ class DashboardController extends AbstractController
         $this->brokerRepository = $brokerRepository;
     }
 
-    #[Route('/dashboard', name: 'dashboard')]
+    #[Route('admin/dashboard', name: 'admin_dashboard')]
     public function index(Request $request): Response
     {
         // Fetch Aggregated Data for Active Policies
@@ -42,7 +42,7 @@ class DashboardController extends AbstractController
 
             if (!$broker) {
                 $this->addFlash('error', "'{$brokerName}' does not exist.");
-                return $this->redirectToRoute('dashboard');
+                return $this->redirectToRoute('admin_dashboard');
             }
 
             $brokerPolicies = $this->policyRepository->findByBroker($broker);
