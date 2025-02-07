@@ -39,8 +39,8 @@ class PolicyRepository extends ServiceEntityRepository
     {
         return $this->cacheHelper->get("broker_{$broker->getUuid()}_policies", function () use ($broker) {
             return $this->buildPolicyQuery(isByBrokers: true, onlyActive: true)
-                ->where('p.broker = :broker')
-                ->setParameter('broker', $broker->getId())
+                ->andWhere('p.broker = :broker')
+                ->setParameter('broker', $broker)
                 ->getQuery()
                 ->getResult();
         }, self::CACHE_TTL_BROKER);
@@ -65,7 +65,9 @@ class PolicyRepository extends ServiceEntityRepository
         ])
         ->innerJoin('p.broker', 'b')
         ->innerJoin('p.broker_client', 'c')
-        ->leftJoin('p.financials', 'f');
+        ->leftJoin('p.financials', 'f')
+        // ->where('p.start_date <= CURRENT_DATE() AND p.end_date >= CURRENT_DATE()')
+        ;
 
         if ($onlyActive) {
             $qb->where('p.start_date <= CURRENT_DATE() AND p.end_date >= CURRENT_DATE()');

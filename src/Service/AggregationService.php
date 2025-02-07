@@ -9,6 +9,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class AggregationService
 {
+    private const CACHE_TTL_BROKER = 900;   // 15 minutes
+
     public function __construct(
         private readonly BrokerRepository $brokerRepository,
         private readonly PolicyRepository $policyRepository,
@@ -26,7 +28,7 @@ class AggregationService
             }
 
             return $broker;
-        }, PolicyRepository::CACHE_TTL_BROKER);
+        }, self::CACHE_TTL_BROKER);
     }
 
     public function getAggregatedDataSummary(): array
