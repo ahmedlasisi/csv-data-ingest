@@ -23,7 +23,7 @@ class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
 
         // Redirect based on user role
         if (in_array('ROLE_ADMIN', $user->getRoles(), true)) {
-            return new RedirectResponse($this->router->generate('dashboard'));
+            return new RedirectResponse($this->router->generate('admin_dashboard'));
         }
 
         if (in_array('ROLE_BROKER', $user->getRoles(), true)) {
@@ -31,6 +31,6 @@ class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
         }
 
         // Default redirection for regular users
-        return new RedirectResponse($this->router->generate('dashboard'));
+        return new RedirectResponse($this->router->generate('admin_dashboard'));
     }
 }
