@@ -72,7 +72,7 @@ class SecurityController extends AbstractController
         // Create user
         $user = new User();
         $user->setEmail($email);
-        $user->setRoles(['ROLE_USER']); // Set default role
+        $user->setRoles(['ROLE_ADMIN']); // Set default role
 
         // Hash password securely
         $hashedPassword = $this->passwordHasher->hashPassword($user, $password);
