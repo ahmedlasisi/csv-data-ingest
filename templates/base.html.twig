@@ -25,6 +25,9 @@
                             Hello,
                             {{ app.user.email }}
                         </span>
+                        <a class="btn btn-outline-light btn-sm" href="{{ path('admin_dashboard') }}">
+                            Dashboard
+                        </a>
                         <a class="btn btn-outline-light btn-sm" href="{{ path('broker_config_index') }}">
                             Broker Onboard Settings
                         </a>

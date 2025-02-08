@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% form_theme form 'bootstrap_4_layout.html.twig' %}
 
 {% block title %}
   {{ is_edit ? 'Edit Broker Configuration' : 'New Broker Configuration' }}
@@ -26,7 +27,8 @@
       </div>
     {% endfor %}
 
-    {{ form_start(form) }}
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate' }}
+    ) }}
     <div class="mb-3">
       {{ form_label(form.broker) }}
       {{ form_widget(form.broker, {'attr': {'class': 'form-control' }}

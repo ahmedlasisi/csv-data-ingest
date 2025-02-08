@@ -30,6 +30,9 @@
             File Name
           </th>
           <th>
+            Config
+          </th>
+          <th>
             Actions
           </th>
         </tr>
@@ -37,11 +40,14 @@
       <tbody>
         {% for broker in brokers %}
           <tr>
-            <td>
+            <td width="15%">
               {{ broker.name }}
             </td>
-            <td>
+            <td width="20%">
               {{ broker.config.fileName }}
+            </td>
+            <td>
+              {{ broker.config.FileMapping |json_encode(constant('JSON_PRETTY_PRINT')) }}
             </td>
             <td>
               <a href="{{ path('broker_config_edit', {'uuid': broker.uuid}) }}" class="btn btn-primary btn-sm">
