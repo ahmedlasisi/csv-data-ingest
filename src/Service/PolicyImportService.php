@@ -144,39 +144,79 @@ class PolicyImportService
         return $csv;
     }
 
+    // private function processRecords(iterable $records, array $fileMapping, Broker $broker, ?SymfonyStyle $io = null): void
+    // {
+    //     $batchSize = 50;
+    //     $i = 0;
+
+    //     foreach ($records as $record) {
+    //         try {
+    //             if (!$this->entityManager->isOpen()) {
+    //                 $this->resetEntityManager();
+    //             }
+
+    //             $transformedRecord = $this->transformCsvRecord($record, $fileMapping);
+    //             $this->processRecord($transformedRecord, $broker);
+
+    //             if (++$i % $batchSize === 0) {
+    //                 $this->entityManager->flush();
+    //                 $this->entityManager->clear();
+    //                 $this->clearCaches();
+    //             }
+    //         } catch (\Throwable $e) {
+    //             $this->handleRecordError($e);
+    //         }
+    //     }
+    //     if ($this->entityManager->isOpen()) {
+    //         $this->entityManager->flush();
+    //     }
+    // }
+
     private function processRecords(iterable $records, array $fileMapping, Broker $broker, ?SymfonyStyle $io = null): void
     {
         $batchSize = 50;
         $i = 0;
 
+        // Ensure Broker is managed before processing
+        $broker = $this->ensureBrokerIsManaged($broker);
+
         foreach ($records as $record) {
             try {
+                // If EntityManager was closed, reset it and re-fetch Broker
                 if (!$this->entityManager->isOpen()) {
                     $this->resetEntityManager();
+                    $broker = $this->ensureBrokerIsManaged($broker);
                 }
 
                 $transformedRecord = $this->transformCsvRecord($record, $fileMapping);
                 $this->processRecord($transformedRecord, $broker);
 
+                // Flush and clear batch processing
                 if (++$i % $batchSize === 0) {
-                    $this->entityManager->flush();
-                    $this->entityManager->clear();
-                    $this->clearCaches();
+                    $this->flushAndClear();
+                    $broker = $this->ensureBrokerIsManaged($broker); // Re-fetch Broker after clearing
                 }
             } catch (\Throwable $e) {
                 $this->handleRecordError($e);
             }
         }
-        if ($this->entityManager->isOpen()) {
-            $this->entityManager->flush();
-        }
+
+        // Final flush after processing all records
+        $this->flushAndClear();
     }
 
+    // Helper method to flush, clear, and clean up caches
     private function flushAndClear(): void
     {
         $this->entityManager->flush();
         $this->entityManager->clear();
         $this->clearCaches();
+    }
+
+    // Helper method to re-fetch Broker from the database
+    private function ensureBrokerIsManaged(Broker $broker): Broker
+    {
+        return $this->entityManager->find(Broker::class, $broker->getId()) ?? $broker;
     }
 
     private function handleRecordError(\Throwable $e): void
