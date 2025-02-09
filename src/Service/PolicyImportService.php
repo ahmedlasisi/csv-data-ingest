@@ -121,6 +121,7 @@ class PolicyImportService
             $this->logger->info("Valid JSON mapping for file: " . $config->getFileName());
             $this->logger->info("Starting to process records for file: $filePath");
             $this->processRecords($csv->getRecords(), $fileMapping, $broker, $io);
+            
             $this->logger->info("Finished processing records for file: $filePath");
         } catch (\Throwable $e) {
             $this->logger->error("Exception caught during file processing: " . $e->getMessage());
@@ -158,14 +159,17 @@ class PolicyImportService
                 $this->processRecord($transformedRecord, $broker);
 
                 if (++$i % $batchSize === 0) {
-                    $this->flushAndClear();
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                    $this->clearCaches();
                 }
             } catch (\Throwable $e) {
                 $this->handleRecordError($e);
             }
         }
-
-        $this->flushAndClear();
+        if ($this->entityManager->isOpen()) {
+            $this->entityManager->flush();
+        }
     }
 
     private function flushAndClear(): void
