@@ -4,17 +4,19 @@ namespace App\Service;
 
 use App\Entity\Event;
 use App\Entity\Broker;
-use App\Entity\BrokerClient;
 use App\Entity\Policy;
 use League\Csv\Reader;
 use App\Entity\Insurer;
 use App\Entity\Product;
 use App\Entity\Financials;
+use App\Entity\BrokerClient;
 use App\Entity\BrokerConfig;
 use Psr\Log\LoggerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class PolicyImportService
 {
@@ -74,56 +76,118 @@ class PolicyImportService
             return;
         }
 
-        $this->processFile($filePath, $broker, $config, $io);
+        $this->processFile($filePath, $broker, $io);
     }
 
-    private function processFile(string $filePath, Broker $broker, BrokerConfig $config, $io): void
+    public function handleFileUpload(UploadedFile $file, Broker $broker): array
     {
-        $io->section("Processing file: " . basename($filePath));
-    
+        $filePath = $file->getPathname(); // Temporary location of uploaded file
+        return $this->processFile($filePath, $broker);
+    }
+
+    private function processFile(string $filePath, Broker $broker, ?SymfonyStyle $io = null): ?array
+    {
+        if ($io) {
+            $io->section("Processing file: " . basename($filePath));
+        } else {
+            $this->logger->info("Processing file: " . basename($filePath));
+        }
+
+        $config = $broker->getConfig();
+        $errors = [];
+
+        $this->logger->info("Starting to process file: $filePath");
+
+        if (!file_exists($filePath)) {
+            $this->logger->error("File does not exist: $filePath");
+            if ($io) {
+                $io->error("File does not exist: " . basename($filePath));
+            }
+            return $io ? null : ["File does not exist: $filePath"];
+        }
+
         try {
-            $csv = Reader::createFromPath($filePath, 'r');
-            $csv->setHeaderOffset(0);
-            $records = $csv->getRecords();
+            $this->logger->info("Reading CSV file: $filePath");
+            $csv = $this->readCsvFile($filePath);
             $csvHeaders = $csv->getHeader();
-    
+            $this->logger->info("CSV headers: " . implode(', ', $csvHeaders));
             $fileMapping = $config->getFileMapping();
-    
+            $this->logger->info("File mapping: " . json_encode($fileMapping));
+
             if (!$this->validateMapping($fileMapping, $csvHeaders)) {
                 throw new \Exception("Invalid JSON mapping for file: " . $config->getFileName());
             }
-    
-            $batchSize = 50;
-            $i = 0;
-    
-            foreach ($records as $record) {
-                try {
-                    if (!$this->entityManager->isOpen()) {
-                        $this->resetEntityManager();
-                    }
-    
-                    $transformedRecord = $this->transformCsvRecord($record, $fileMapping);
-                    $this->processRecord($transformedRecord, $broker, $fileMapping);
-    
-                    if (++$i % $batchSize === 0) {
-                        $this->entityManager->flush();
-                        $this->entityManager->clear();
-                        $this->clearCaches();
-                    }
-                } catch (\Throwable $e) {
-                    $this->logger->error("Skipping record due to error: " . $e->getMessage());
-                    $this->entityManager->clear(); // Prevent partial persistence issues
-                    $this->clearCaches();
-                }
-            }
-    
-            if ($this->entityManager->isOpen()) {
-                $this->entityManager->flush();
-            }
-    
-            $io->success("Finished processing " . basename($filePath));
+
+            $this->logger->info("Valid JSON mapping for file: " . $config->getFileName());
+            $this->logger->info("Starting to process records for file: $filePath");
+            $this->processRecords($csv->getRecords(), $fileMapping, $broker, $io);
+            $this->logger->info("Finished processing records for file: $filePath");
         } catch (\Throwable $e) {
-            $this->logger->error("Failed processing {$filePath}: " . $e->getMessage());
+            $this->logger->error("Exception caught during file processing: " . $e->getMessage());
+            $this->handleProcessingError($e, $filePath, $io, $errors);
+        }
+
+        if ($io) {
+            $io->success("Finished processing " . basename($filePath));
+        } else {
+            $this->logger->info("Finished processing " . basename($filePath));
+        }
+
+        return $io ? null : $errors;
+    }
+    
+    private function readCsvFile(string $filePath): Reader
+    {
+        $csv = Reader::createFromPath($filePath, 'r');
+        $csv->setHeaderOffset(0);
+        return $csv;
+    }
+
+    private function processRecords(iterable $records, array $fileMapping, Broker $broker, ?SymfonyStyle $io = null): void
+    {
+        $batchSize = 50;
+        $i = 0;
+
+        foreach ($records as $record) {
+            try {
+                if (!$this->entityManager->isOpen()) {
+                    $this->resetEntityManager();
+                }
+
+                $transformedRecord = $this->transformCsvRecord($record, $fileMapping);
+                $this->processRecord($transformedRecord, $broker);
+
+                if (++$i % $batchSize === 0) {
+                    $this->flushAndClear();
+                }
+            } catch (\Throwable $e) {
+                $this->handleRecordError($e);
+            }
+        }
+
+        $this->flushAndClear();
+    }
+
+    private function flushAndClear(): void
+    {
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->clearCaches();
+    }
+
+    private function handleRecordError(\Throwable $e): void
+    {
+        $this->logger->error("Skipping record due to error: " . $e->getMessage());
+        $this->entityManager->clear(); // Prevent partial persistence issues
+        $this->clearCaches();
+    }
+
+    private function handleProcessingError(\Throwable $e, string $filePath, ?SymfonyStyle $io, array &$errors): void
+    {
+        $this->logger->error("Failed processing {$filePath}: " . $e->getMessage());
+        $errors[] = "Error: " . $e->getMessage();
+
+        if ($io) {
             $io->error("Error: " . $e->getMessage());
         }
     }
@@ -143,7 +207,7 @@ class PolicyImportService
         return $transformedRecord;
     }
 
-    private function processRecord(array $record, Broker $broker, array $fileMapping): void
+    private function processRecord(array $record, Broker $broker): void
     {
         $policyNumber = trim($record['PolicyNumber'] ?? '');
         $clientRef = trim($record['ClientRef'] ?? '');
