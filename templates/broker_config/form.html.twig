@@ -11,7 +11,7 @@
       {{ is_edit ? 'Edit Broker Configuration' : 'New Broker Configuration' }}
     </h1>
 
-    <a href="{{ path('broker_config_index') }}" class="btn btn-secondary mb-3">
+    <a href="{{ path('broker_config_index', {'format': 'admin'}) }}" class="btn btn-secondary mb-3">
       ← Back to List
     </a>
 
