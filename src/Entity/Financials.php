@@ -36,7 +36,7 @@ class Financials
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $policy_fee = null;
 
-    #[ORM\OneToOne(inversedBy: 'financials', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(inversedBy: 'financials', targetEntity: Policy::class, cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Policy $policy = null;
 
