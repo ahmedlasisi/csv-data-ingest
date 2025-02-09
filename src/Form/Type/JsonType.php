@@ -34,29 +34,7 @@ class JsonType extends AbstractType
     {
         $resolver->setDefaults([
             'attr' => [
-                'rows' => 5,
-                'placeholder' => '{
-                    "PolicyNumber": "12345",
-                    "InsuredAmount": "100000",
-                    "StartDate": "2025-01-01",
-                    "EndDate": "2025-12-31",
-                    "AdminFee": "100",
-                    "BusinessDescription": "Description",
-                    "BusinessEvent": "Event",
-                    "ClientType": "Type",
-                    "ClientRef": "Ref123",
-                    "Commission": "10%",
-                    "EffectiveDate": "2025-01-01",
-                    "InsurerPolicyNumber": "54321",
-                    "IPTAmount": "20",
-                    "Premium": "200",
-                    "PolicyFee": "50",
-                    "PolicyType": "TypeA",
-                    "Insurer": "InsurerName",
-                    "RenewalDate": "2026-01-01",
-                    "RootPolicyRef": "RootRef",
-                    "Product": "ProductName"
-                }'
+                'rows' => 5
             ],
             'constraints' => [
                 new NotBlank(),
