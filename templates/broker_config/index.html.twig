@@ -14,11 +14,7 @@
       Add New Broker Config
     </a>
 
-    {% for message in app.flashes('success') %}
-      <div class="alert alert-success">
-        {{ message }}
-      </div>
-    {% endfor %}
+    {% include 'partials/_flash-messages.html.twig' %}
 
     <table class="table table-striped">
       <thead>

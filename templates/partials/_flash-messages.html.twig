@@ -1,0 +1,12 @@
+{% set flashTypes = {'success': 'alert-success', 'warning': 'alert-warning', 'error': 'alert-danger'} %}
+
+{% for type, class in flashTypes %}
+  {% for message in app.flashes(type) %}
+    <p class="alert {{ class }}">
+      {% if type == 'error' %}
+        Oh no!
+      {% endif %}
+      {{ message }}
+    </p>
+  {% endfor %}
+{% endfor %}
