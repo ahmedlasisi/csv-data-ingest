@@ -2,19 +2,20 @@
 
 namespace App\Tests\Service;
 
+use ReflectionMethod;
 use App\Entity\Broker;
-use App\Entity\BrokerConfig;
-use App\Entity\BrokerClient;
+use League\Csv\Reader;
 use App\Entity\Insurer;
+use App\Entity\BrokerClient;
+use App\Entity\BrokerConfig;
+use Psr\Log\LoggerInterface;
+use PHPUnit\Framework\TestCase;
+use Doctrine\ORM\EntityRepository;
 use App\Service\PolicyImportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\MockObject\MockObject;
-use Doctrine\ORM\EntityRepository;
-use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use ReflectionMethod;
 
 class PolicyImportServiceTest extends TestCase
 {
@@ -212,7 +213,7 @@ class PolicyImportServiceTest extends TestCase
         $this->entityManager->expects($this->once())->method('flush');
         $this->entityManager->expects($this->once())->method('commit');
 
-        $refMethod = new \ReflectionMethod($this->service, 'findOrCreateBrokerClient');
+        $refMethod = new ReflectionMethod($this->service, 'findOrCreateBrokerClient');
         $refMethod->setAccessible(true);
 
         /** @var BrokerClient $client */
@@ -248,7 +249,7 @@ class PolicyImportServiceTest extends TestCase
                  return method_exists($entity, 'getName') && $entity->getName() === $name;
              }));
     
-        $refMethod = new \ReflectionMethod($this->service, 'findOrCreateEntity');
+        $refMethod = new ReflectionMethod($this->service, 'findOrCreateEntity');
         $refMethod->setAccessible(true);
     
         $entity = $refMethod->invoke($this->service, $entityClass, $name, $broker);
@@ -259,45 +260,136 @@ class PolicyImportServiceTest extends TestCase
         $entityCached = $refMethod->invoke($this->service, $entityClass, $name, $broker);
         $this->assertSame($entity, $entityCached);
     }
-    public function testProcessFileWithInvalidMappingThrowsException(): void
+
+    public function testHandleFileUpload(): void
     {
-        // Create a temporary CSV file with headers that do not match the mapping.
-        $csvContent = "A,B,C\n1,2,3\n";
-        $tempFile   = tempnam(sys_get_temp_dir(), 'test_csv_');
-        file_put_contents($tempFile, $csvContent);
+        $file = $this->createMock(\Symfony\Component\HttpFoundation\File\UploadedFile::class);
+        $file->method('getPathname')->willReturn('path/to/uploaded/file.csv');
 
-        // Create a dummy BrokerConfig whose mapping expects columns not present in the CSV.
-        $brokerConfig = $this->createMock(BrokerConfig::class);
-        $brokerConfig->method('getFileName')->willReturn(basename($tempFile));
-        $brokerConfig->method('getBroker')->willReturn($this->broker);
-        $brokerConfig->method('getFileMapping')->willReturn([
-            'PolicyNumber' => 'PolicyNumber', // missing from CSV headers
-            'ClientRef'    => 'ClientRef'
-        ]);
+        $result = $this->service->handleFileUpload($file, $this->broker);
 
-        // Create a repository mock for BrokerConfig.
-        $repository = $this->createMock(\Doctrine\ORM\EntityRepository::class);
-        $repository->method('findAll')->willReturn([$brokerConfig]);
+        $this->assertIsArray($result);
+    }
 
-        $this->entityManager
-             ->method('getRepository')
-             ->with(BrokerConfig::class)
-             ->willReturn($repository);
+    public function testProcessFile()
+    {
+        $filePath = __DIR__ . '/../../var/data/broker1.csv';
+        $config = $this->createMock(BrokerConfig::class);
+        $fileMapping = ['PolicyNumber' => 'PolicyNumber'];
 
-        // Adjust expectations for logger->error() to allow multiple calls.
-        // We now expect an error containing "Invalid JSON mapping" rather than "csv file is missing expected column"
-        $this->logger->expects($this->atLeastOnce())
-             ->method('error')
-             ->with($this->stringContains("Invalid JSON mapping"));
+        $this->broker->method('getConfig')->willReturn($config);
+        $config->method('getFileMapping')->willReturn($fileMapping);
+        $config->method('getFileName')->willReturn('broker1.csv');
 
-        // Expect the IO to get an error message.
-        $this->io->expects($this->once())
-             ->method('error')
-             ->with($this->stringContains("Invalid JSON mapping"));
+        $csv = $this->createMock(Reader::class);
+        $csv->method('getHeader')->willReturn(['PolicyNumber']);
+        $csv->method('getRecords')->willReturn(new \ArrayIterator([['PolicyNumber' => 'POL001']]));
 
-        // Invoke importPolicies which calls processFile.
-        $this->service->importPolicies($this->io);
+        $reflection = new \ReflectionClass($this->service);
+        $readCsvFileMethod = $reflection->getMethod('readCsvFile');
+        $readCsvFileMethod->setAccessible(true);
 
-        unlink($tempFile);
+        $readCsvFileMethod->invoke($this->service, $filePath);
+
+        $validateMappingMethod = $reflection->getMethod('validateMapping');
+        $validateMappingMethod->setAccessible(true);
+        $validateMappingMethod->invoke($this->service, $fileMapping, ['PolicyNumber']);
+
+        $transformCsvRecordMethod = $reflection->getMethod('transformCsvRecord');
+        $transformCsvRecordMethod->setAccessible(true);
+        $transformCsvRecordMethod->invoke($this->service, ['PolicyNumber' => 'POL001'], $fileMapping);
+
+        $processRecordMethod = $reflection->getMethod('processRecord');
+        $processRecordMethod->setAccessible(true);
+        $processRecordMethod->invoke($this->service, ['PolicyNumber' => 'POL001'], $this->broker);
+
+        $this->io->expects($this->once())->method('section')->with('Processing file: broker1.csv');
+        $this->io->expects($this->once())->method('success')->with('Finished processing broker1.csv');
+
+        $processFileMethod = $reflection->getMethod('processFile');
+        $processFileMethod->setAccessible(true);
+
+        $result = $processFileMethod->invoke($this->service, $filePath, $this->broker, $this->io);
+
+        $this->assertNull($result);
+    }
+
+    public function testReadCsvFile()
+    {
+        $filePath = __DIR__ . '/../../var/data/broker1.csv';
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('readCsvFile');
+        $method->setAccessible(true);
+
+        $csv = $method->invoke($this->service, $filePath);
+
+        $this->assertInstanceOf(Reader::class, $csv);
+    }
+
+    public function testProcessRecords()
+    {
+        $records = new \ArrayIterator([['PolicyNumber' => 'POL001']]);
+        $fileMapping = ['PolicyNumber' => 'PolicyNumber'];
+
+        $reflection = new \ReflectionClass($this->service);
+        $transformCsvRecordMethod = $reflection->getMethod('transformCsvRecord');
+        $transformCsvRecordMethod->setAccessible(true);
+        $transformCsvRecordMethod->invoke($this->service, ['PolicyNumber' => 'POL001'], $fileMapping);
+
+        $processRecordMethod = $reflection->getMethod('processRecord');
+        $processRecordMethod->setAccessible(true);
+        $processRecordMethod->invoke($this->service, ['PolicyNumber' => 'POL001'], $this->broker);
+
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $method = $reflection->getMethod('processRecords');
+        $method->setAccessible(true);
+
+        $method->invokeArgs($this->service, [$records, $fileMapping, $this->broker, $this->io]);
+    }
+
+    public function testFlushAndClear()
+    {
+        $this->entityManager->expects($this->once())->method('flush');
+        $this->entityManager->expects($this->once())->method('clear');
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('flushAndClear');
+        $method->setAccessible(true);
+
+        $method->invoke($this->service);
+    }
+
+    public function testHandleRecordError()
+    {
+        $exception = new \Exception('Test error');
+
+        $this->logger->expects($this->once())->method('error')->with('Skipping record due to error: Test error');
+        $this->entityManager->expects($this->once())->method('clear');
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('handleRecordError');
+        $method->setAccessible(true);
+
+        $method->invoke($this->service, $exception);
+    }
+
+    public function testHandleProcessingError()
+    {
+        $exception = new \Exception('Test error');
+        $filePath = __DIR__ . '/../../var/data/broker.csv';
+        $errors = [];
+
+        $this->logger->expects($this->once())->method('error')->with('Failed processing ' . $filePath . ': Test error');
+        $this->io->expects($this->once())->method('error')->with('Error: Test error');
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('handleProcessingError');
+        $method->setAccessible(true);
+
+        $method->invokeArgs($this->service, [$exception, $filePath, $this->io, &$errors]);
+
+        $this->assertContains('Error: Test error', $errors);
     }
 }
