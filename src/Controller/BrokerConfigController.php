@@ -6,8 +6,8 @@ use App\Entity\Broker;
 use App\Entity\BrokerConfig;
 use App\Service\CacheHelper;
 use App\Form\BrokerConfigType;
-use Symfony\Component\Uid\Uuid;
 use App\Util\JsonPlaceholders;
+use Symfony\Component\Uid\Uuid;
 use App\Service\ClearDataService;
 use App\Repository\BrokerRepository;
 use App\Service\PolicyImportService;
@@ -23,6 +23,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[Route('/{format<admin|api>}/brokers')]
 #[IsGranted('ROLE_ADMIN')]
@@ -77,49 +78,27 @@ class BrokerConfigController extends AbstractController
     }
 
     /**
-     * Create or Edit a broker configuration (UI + API)
-     */
-    #[Route('/config/{uuid?}', name: 'broker_config_save', methods: ['GET', 'POST', 'PUT'])]
-    public function save(Request $request, string $format, ?string $uuid = null): Response
+    * Create a new broker configuration (UI + API)
+    */
+    #[Route('/config/new', name: 'broker_config_create', methods: ['GET', 'POST', 'PUT'])]
+    public function createBrokerConfig(Request $request, string $format): Response
     {
-        $isEdit = $uuid !== null;
-        $config = $isEdit ? $this->getBrokerConfigByUuid($uuid) : new BrokerConfig();
+        return $this->handleBrokerConfig($request, $format, null);
+    }
 
-        if ($format === 'api') {
-            $data = $this->getJsonRequestBody($request, ['broker_name', 'file_name', 'file_mapping']);
-            if ($data instanceof JsonResponse) {
-                return $data;
-            }
-    
-            // Validate file mapping format
-            if (!$this->policyImportService->validateConfigMapping($data['file_mapping'])) {
-                return $this->json(['error' => 'Invalid JSON Config mapping for file'], JsonResponse::HTTP_CONFLICT);
-            }
-    
-            // Fetch or create broker
-            $broker = $this->entityManager->getRepository(Broker::class)->findOneBy(['name' => trim($data['broker_name'])]);
-            if (!$broker) {
-                $broker = $this->policyImportService->findOrCreateEntity(Broker::class, trim($data['broker_name']), $broker);
-            }
-    
-            // Prevent duplicate broker config
-            if ($this->brokerConfigRepository->findOneBy(['broker' => $broker])) {
-                return $this->json(['error' => 'Broker config already exists'], JsonResponse::HTTP_CONFLICT);
-            }
-
-            $config->setFileName($data['file_name'] ?? $config->getFileName());
-            $config->setFileMapping($data['file_mapping'] ?? $config->getFileMapping());
-
-            return $this->persistAndReturnResponse($config, 'Broker configuration saved successfully', $isEdit ? JsonResponse::HTTP_OK : JsonResponse::HTTP_CREATED);
-        }
-
-        return $this->handleForm($request, $config, $isEdit);
+    /**
+     * Edit an existing broker configuration (UI + API)
+     */
+    #[Route('/config/{uuid}', name: 'broker_config_edit', methods: ['GET', 'POST', 'PUT'])]
+    public function editBrokerConfig(Request $request, string $format, string $uuid): Response
+    {
+        return $this->handleBrokerConfig($request, $format, $uuid);
     }
 
     /**
      * Delete a broker configuration (UI + API)
      */
-    #[Route('/config/delete/{uuid}', name: 'broker_config_delete', methods: ['POST'])]
+    #[Route('/config/delete/{uuid}', name: 'broker_config_delete', methods: ['POST', 'DELETE'])]
     public function delete(Request $request, string $format, string $uuid): Response
     {
         $broker = $this->brokerRepository->findOneBy(['uuid' => $uuid]);
@@ -134,10 +113,6 @@ class BrokerConfigController extends AbstractController
         $this->entityManager->remove($broker);
         $this->entityManager->flush();
 
-        if ($format === 'admin') {
-            $this->addFlash('success', 'Broker configuration deleted successfully.');
-        }
-
         return $format === 'api'
             ? $this->json(['message' => 'Broker configuration deleted successfully'])
             : $this->redirectToRoute('broker_config_index', ['format' => 'admin']);
@@ -149,11 +124,12 @@ class BrokerConfigController extends AbstractController
     #[Route('/config/upload/{uuid}', name: 'broker_upload_csv', methods: ['POST'])]
     public function uploadCsv(Request $request, string $format, string $uuid): Response
     {
-        $broker = $this->getBrokerByUuid($uuid);
-        if (!$broker) {
-            return $this->handleNotFound($format, 'Broker not found.');
-        }
+        $broker = $this->getEntityByUuid($uuid, Broker::class, $format);
 
+        if (!($broker instanceof Broker)) {
+            return $broker;
+        }
+       
         $file = $request->files->get('csv_file');
         if (!$file) {
             return $this->handleError($format, 'No file uploaded.');
@@ -164,6 +140,102 @@ class BrokerConfigController extends AbstractController
             return $this->handleSuccess($format, 'CSV file processed successfully.');
         } catch (\Exception $e) {
             return $this->handleError($format, 'Error processing CSV file: ' . $e->getMessage());
+        }
+    }
+
+    #[Route('/{uuid}/clear-policies', name: 'api_clear_broker_data', methods: ['DELETE'])]
+    public function clearBrokerPolicies(string $uuid, string $format): JsonResponse
+    {
+        return $this->clearBrokerDataByType($uuid, 'policies', $format);
+    }
+
+    /**
+     * Clears all data for a given broker.
+     */
+    #[Route('/{uuid}/clear-all', name: 'api_clear_all_broker_data', methods: ['DELETE'])]
+    public function clearBrokerData(string $uuid, string $format): JsonResponse
+    {
+        return $this->clearBrokerDataByType($uuid, 'all', $format);
+    }
+
+    /**
+     * Handles broker configuration creation and editing.
+     */
+    private function handleBrokerConfig(Request $request, string $format, ?string $uuid): Response
+    {
+        $isEdit = $uuid !== null;
+
+        if ($isEdit) {
+            $broker = $this->getEntityByUuid($uuid, Broker::class, $format);
+
+            if (!($broker instanceof Broker)) {
+                return $broker;
+            }
+        }
+        $config = $isEdit ?$broker->getConfig() : new BrokerConfig();
+
+        if ($format === 'api') {
+            $data = $this->getJsonRequestBody($request, ['broker_name', 'file_name', 'file_mapping']);
+            if ($data instanceof JsonResponse) {
+                return $data;
+            }
+
+            // Validate file mapping format
+            if (!$this->policyImportService->validateConfigMapping($data['file_mapping'])) {
+                return $this->json(['error' => 'Invalid JSON Config mapping for file'], JsonResponse::HTTP_CONFLICT);
+            }
+
+            // Fetch or create broker
+            $broker = $isEdit ?$broker->setName($data['broker_name']) : $this->entityManager->getRepository(Broker::class)->findOneBy(['name' => trim($data['broker_name'])]);
+            if (!$broker) {
+                // Ensure broker is created only if it doesn't exist
+                $broker = $this->policyImportService->findOrCreateEntity(Broker::class, trim($data['broker_name']), $broker);
+            }
+
+            // Prevent duplicate broker config
+            if (!$isEdit && $this->brokerConfigRepository->findOneBy(['broker' => $broker])) {
+                return $this->json(['error' => 'Broker config already exists'], JsonResponse::HTTP_CONFLICT);
+            }
+
+            // Ensure broker is set if not set already
+            $config->setBroker($broker);
+
+            $config->setFileName($data['file_name'] ?? $config->getFileName());
+            $config->setFileMapping($data['file_mapping'] ?? $config->getFileMapping());
+ 
+            // Persist and return response
+            return $this->persistAndReturnResponse($config, 'Broker configuration saved successfully', $isEdit ? JsonResponse::HTTP_OK : JsonResponse::HTTP_CREATED);
+        }
+
+        return $this->handleForm($request, $config, $isEdit);
+    }
+
+    /**
+     * Common method to clear broker data based on type (policies or all).
+     */
+    private function clearBrokerDataByType(string $uuid, string $dataType, string $format): JsonResponse
+    {
+        $broker = $this->getEntityByUuid($uuid, Broker::class, $format);
+
+        if (!($broker instanceof Broker)) {
+            return $broker;
+        }
+       
+        try {
+            // Choose the correct service method based on the data type
+            if ($dataType === 'policies') {
+                $this->clearDataService->clearBrokerPoliciesData($broker);
+                $message = "Cleared policies for broker: {$broker->getName()}";
+            } elseif ($dataType === 'all') {
+                $this->clearDataService->clearBrokerData($broker);
+                $message = "Cleared all data for broker: {$broker->getName()}";
+            } else {
+                throw new \InvalidArgumentException('Invalid data type');
+            }
+
+            return $this->json(['message' => $message], JsonResponse::HTTP_OK);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -190,6 +262,43 @@ class BrokerConfigController extends AbstractController
         return $data;
     }
 
+    /**
+    * Get an entity by UUID.
+    *
+    * @param string $uuid
+    * @param string $entityClass
+    * @param bool $isApiRequest Whether the request is from an API
+    * @return object|null
+    * @throws BadRequestHttpException If the UUID is invalid
+    * @throws NotFoundHttpException If the entity is not found
+    */
+    public function getEntityByUuid(string $uuid, string $entityClass, string $format)
+    {
+        // Validate the UUID
+        if (!Uuid::isValid($uuid)) {
+            if($format == 'api') {
+                return new JsonResponse(['error' => 'Invalid UUID format.'], Response::HTTP_BAD_REQUEST);
+            }
+            return $this->handleError($format, 'Invalid UUID format.');
+        }
+
+        // Get the repository for the entity
+        $repository = $this->entityManager->getRepository($entityClass);
+
+        // Find the entity by UUID
+        $entity = $repository->findOneBy(['uuid' => $uuid]);
+
+        // Handle case if entity is not found
+        if (!$entity) {
+            if($format == 'api') {
+                return new JsonResponse(['error' => 'Entity not found.'], Response::HTTP_NOT_FOUND);
+            }
+            return $this->handleError($format, 'Entity not found.');
+        }
+        
+        return $entity;
+    }
+    
     private function getBrokerByUuid(string $uuid): ?Broker
     {
         if (!Uuid::isValid($uuid)) {
@@ -204,6 +313,7 @@ class BrokerConfigController extends AbstractController
 
         return $broker;
     }
+
     private function getBrokerConfigByUuid(string $uuid): BrokerConfig
     {
         $broker = $this->brokerRepository->findOneBy(['uuid' => $uuid]);
