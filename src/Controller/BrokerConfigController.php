@@ -110,11 +110,18 @@ class BrokerConfigController extends AbstractController
             return $this->redirectToRoute('broker_config_index', ['format' => 'admin']);
         }
 
+        $this->clearDataService->clearBrokerData($broker);
+
         $this->entityManager->remove($broker);
         $this->entityManager->flush();
+        $message ='Broker configuration and data deleted successfully';
+
+        if ($format === 'admin') {
+            $this->addFlash('success', $message);
+        }
 
         return $format === 'api'
-            ? $this->json(['message' => 'Broker configuration deleted successfully'])
+            ? $this->json(['message' => $message])
             : $this->redirectToRoute('broker_config_index', ['format' => 'admin']);
     }
 
@@ -143,7 +150,7 @@ class BrokerConfigController extends AbstractController
         }
     }
 
-    #[Route('/{uuid}/clear-policies', name: 'api_clear_broker_data', methods: ['DELETE'])]
+    #[Route('/{uuid}/clear-policies', name: 'api_clear_broker_policy_data', methods: ['DELETE'])]
     public function clearBrokerPolicies(string $uuid, string $format): JsonResponse
     {
         return $this->clearBrokerDataByType($uuid, 'policies', $format);
@@ -233,8 +240,25 @@ class BrokerConfigController extends AbstractController
                 throw new \InvalidArgumentException('Invalid data type');
             }
 
+            //     $this->addFlash('success', 'Broker policy data cleared successfully');
+
+            //     return $this->json(['message' => $message], JsonResponse::HTTP_OK);
+            // } catch (\Exception $e) {
+            //     return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+            // }
+
+            if ($format === 'admin') {
+                $this->addFlash('success', $message);
+                return new JsonResponse(['redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin'])]);
+            }
+       
             return $this->json(['message' => $message], JsonResponse::HTTP_OK);
         } catch (\Exception $e) {
+            if ($format === 'admin') {
+                $this->addFlash('error', $e->getMessage());
+                return new JsonResponse(['redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin'])]);
+            }
+       
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -276,9 +300,6 @@ class BrokerConfigController extends AbstractController
     {
         // Validate the UUID
         if (!Uuid::isValid($uuid)) {
-            if($format == 'api') {
-                return new JsonResponse(['error' => 'Invalid UUID format.'], Response::HTTP_BAD_REQUEST);
-            }
             return $this->handleError($format, 'Invalid UUID format.');
         }
 
@@ -290,9 +311,6 @@ class BrokerConfigController extends AbstractController
 
         // Handle case if entity is not found
         if (!$entity) {
-            if($format == 'api') {
-                return new JsonResponse(['error' => 'Entity not found.'], Response::HTTP_NOT_FOUND);
-            }
             return $this->handleError($format, 'Entity not found.');
         }
         
