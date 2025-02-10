@@ -23,7 +23,7 @@ class Insurer implements BrokerDependentEntityInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100, unique: true)]
+    #[ORM\Column(length: 100)]
     #[Assert\NotBlank(message: 'Insurer name cannot be blank')]
     private ?string $name = null;
 

@@ -24,7 +24,7 @@ class Event implements BrokerDependentEntityInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50, unique: true)]
+    #[ORM\Column(length: 50)]
     #[Assert\NotBlank(message: 'Event name cannot be blank')]
     private ?string $name = null;
 
