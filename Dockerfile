@@ -12,7 +12,7 @@ WORKDIR /var/www/symfony
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set up entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY /docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 # Enable Apache Rewrite Module
 RUN a2enmod rewrite
 
@@ -32,7 +32,7 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 
 # Expose port 8000
-EXPOSE 9000
+# EXPOSE 8000
 
 # Set entrypoint script
-CMD ["apache2-foreground"]
+CMD ["public/index.php"]
