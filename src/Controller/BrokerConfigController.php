@@ -168,7 +168,7 @@ class BrokerConfigController extends AbstractController
     /**
      * Handles broker configuration creation and editing.
      */
-    private function handleBrokerConfig(Request $request, string $format, ?string $uuid): Response
+    private function handleBrokerConfig(Request $request, string $format, ?string $uuid): Response | JsonResponse
     {
         $isEdit = $uuid !== null;
 
