@@ -1,0 +1,41 @@
+PolicyNumber,InsuredAmount,StartDate,EndDate,AdminFee,BusinessDescription,BusinessEvent,ClientType,ClientRef,Commission,EffectiveDate,InsurerPolicyNumber,IPTAmount,Premium,PolicyFee,PolicyType,Insurer,Product,RenewalDate,RootPolicyRef
+POL001,1000000,15/01/2023,15/01/2024,100,Business ABC,New Business,Corporate,CR001,0.15,15/01/2023,IPN001,150,8000,50,Property,ABC Insurance,Property Insurance,15/01/2024,RP001
+POL002,750000,10/02/2023,10/02/2024,75,Business XYZ,Renewal,Individual,CR002,0.12,10/02/2023,IPN002,100,6000,30,Auto,XYZ Insurers,Auto Coverage,10/02/2024,RP002
+POL003,500000,20/03/2023,20/03/2024,50,Business PQR,Policy Renewal,Corporate,CR003,0.1,20/03/2023,IPN003,75,4000,25,Health,PQR Underwriters,Health Insurance,20/03/2024,RP003
+POL004,800000,15/04/2023,15/04/2024,80,Business LMN,New Business,Individual,CR004,0.18,15/04/2023,IPN004,120,9000,60,Property,LMN Insurance,Property Insurance,15/04/2024,RP004
+POL005,600000,12/05/2023,12/05/2024,60,Business XYZ,Policy Renewal,Corporate,CR005,0.14,12/05/2023,IPN005,90,7000,40,Auto,XYZ Insurers,Auto Coverage,12/05/2024,RP005
+POL006,900000,18/06/2023,18/06/2024,90,Business ABC,Renewal,Individual,CR006,0.2,18/06/2023,IPN006,135,10000,70,Health,ABC Insurance,Health Insurance,18/06/2024,RP006
+POL007,1200000,25/07/2023,25/07/2024,120,Business XYZ,New Business,Corporate,CR007,0.25,25/07/2023,IPN007,180,13000,100,Property,XYZ Insurers,Property Insurance,25/07/2024,RP007
+POL008,450000,30/08/2023,30/08/2024,45,Business PQR,Policy Renewal,Individual,CR008,0.08,30/08/2023,IPN008,67.5,3500,15,Auto,PQR Underwriters,Auto Coverage,30/08/2024,RP008
+POL009,1100000,19/09/2023,19/09/2024,110,Business LMN,Renewal,Corporate,CR009,0.22,19/09/2023,IPN009,165,9500,90,Health,LMN Insurance,Health Insurance,19/09/2024,RP009
+POL010,680000,24/10/2023,24/10/2024,68,Business ABC,New Business,Individual,CR010,0.13,24/10/2023,IPN010,102,7200,34,Property,ABC Insurance,Property Insurance,24/10/2024,RP010
+POL011,570000,09/11/2023,09/11/2024,57,Business XYZ,Policy Renewal,Corporate,CR011,0.09,09/11/2023,IPN011,85.5,5300,21,Auto,XYZ Insurers,Auto Coverage,09/11/2024,RP011
+POL012,930000,14/12/2023,14/12/2024,93,Business PQR,Renewal,Individual,CR012,0.19,14/12/2023,IPN012,139.5,8800,76,Health,PQR Underwriters,Health Insurance,14/12/2024,RP012
+POL013,770000,21/01/2024,21/01/2025,77,Business LMN,New Business,Corporate,CR013,0.16,21/01/2024,IPN013,115.5,6700,45,Property,LMN Insurance,Property Insurance,21/01/2025,RP013
+POL014,520000,05/02/2024,05/02/2025,52,Business ABC,Policy Renewal,Individual,CR014,0.11,05/02/2024,IPN014,78,4600,29,Auto,ABC Insurance,Auto Coverage,05/02/2025,RP014
+POL015,880000,11/03/2024,11/03/2025,88,Business XYZ,Renewal,Corporate,CR015,0.21,11/03/2024,IPN015,132,8100,65,Health,XYZ Insurers,Health Insurance,11/03/2025,RP015
+POL016,430000,18/04/2024,18/04/2025,43,Business PQR,New Business,Individual,CR016,0.07,18/04/2024,IPN016,64.5,3200,12,Property,PQR Underwriters,Property Insurance,18/04/2025,RP016
+POL017,1050000,23/05/2024,23/05/2025,105,Business LMN,Policy Renewal,Corporate,CR017,0.23,23/05/2024,IPN017,157.5,9200,80,Auto,LMN Insurance,Auto Coverage,23/05/2025,RP017
+POL018,720000,29/06/2024,29/06/2025,72,Business ABC,Renewal,Individual,CR018,0.17,29/06/2024,IPN018,108,6700,54,Health,ABC Insurance,Health Insurance,29/06/2025,RP018
+POL019,590000,17/07/2024,17/07/2025,59,Business XYZ,New Business,Corporate,CR019,0.12,17/07/2024,IPN019,88.5,5000,27,Property,XYZ Insurers,Property Insurance,17/07/2025,RP019
+POL020,970000,22/08/2024,22/08/2025,97,Business PQR,Policy Renewal,Individual,CR008,0.2,22/08/2024,IPN020,145.5,7600,71,Auto,PQR Underwriters,Auto Coverage,22/08/2025,RP020
+POL021,1100000,28/09/2024,28/09/2025,110,Business LMN,New Business,Corporate,CR021,0.15,28/09/2024,IPN021,165,9500,50,Property,LMN Insurance,Property Insurance,28/09/2025,RP021
+POL022,630000,14/10/2024,14/10/2025,63,Business XYZ,Policy Renewal,Individual,CR022,0.1,14/10/2024,IPN022,94.5,5500,30,Auto,XYZ Insurers,Auto Coverage,14/10/2025,RP022
+POL023,880000,20/11/2024,20/11/2025,88,Business PQR,Renewal,Corporate,CR023,0.18,20/11/2024,IPN023,132,8000,70,Health,PQR Underwriters,Health Insurance,20/11/2025,RP023
+POL024,480000,10/12/2024,10/12/2025,48,Business ABC,New Business,Individual,CR024,0.08,10/12/2024,IPN024,72,4000,20,Property,ABC Insurance,Property Insurance,10/12/2025,RP024
+POL025,990000,05/01/2025,05/01/2026,99,Business XYZ,Policy Renewal,Corporate,CR025,0.16,05/01/2025,IPN025,148.5,8700,60,Auto,XYZ Insurers,Auto Coverage,05/01/2026,RP025
+POL026,720000,Not Known,09/02/2024,72,Business PQR,Renewal,Individual,CR026,0.12,09/02/2025,IPN026,108,6400,40,Health,PQR Underwriters,Health Insurance,09/02/2026,RP026
+POL027,530000,16/03/2025,16/03/2026,53,Business LMN,New Business,Corporate,CR027,0.09,16/03/2025,IPN027,79.5,4600,25,Property,LMN Insurance,Property Insurance,16/03/2026,RP027
+POL028,1180000,21/04/2025,21/04/2026,118,Business ABC,Policy Renewal,Individual,CR028,0.2,21/04/2025,IPN028,177,10400,90,Auto,ABC Insurance,Auto Coverage,21/04/2026,RP028
+POL029,690000,07/05/2025,07/05/2026,69,Business XYZ,Renewal,Corporate,CR029,0.14,07/05/2025,IPN029,103.5,6000,35,Health,XYZ Insurers,Health Insurance,07/05/2026,RP029
+POL030,560000,12/06/2025,12/06/2026,56,Business PQR,New Business,Individual,CR030,0.11,12/06/2025,IPN030,84,4800,28,Property,PQR Underwriters,Property Insurance,12/06/2026,RP030
+POL031,920000,19/07/2025,19/07/2026,92,Business LMN,Policy Renewal,Corporate,CR031,0.17,19/07/2025,IPN031,138,8000,75,Auto,LMN Insurance,Auto Coverage,19/07/2026,RP031
+POL032,480000,25/08/2025,25/08/2026,48,Business ABC,Renewal,Individual,CR029,0.13,25/08/2025,IPN032,72,4300,22,Health,ABC Insurance,Health Insurance,25/08/2026,RP032
+POL033,1050000,30/09/2025,30/09/2026,105,Business XYZ,New Business,Corporate,CR033,0.19,30/09/2025,IPN033,157.5,9000,80,Property,XYZ Insurers,Property Insurance,30/09/2026,RP033
+POL034,780000,16/10/2025,16/10/2026,78,Business PQR,Policy Renewal,Individual,CR034,0.15,16/10/2025,IPN034,117,6800,50,Auto,PQR Underwriters,Auto Coverage,16/10/2026,RP034
+POL035,510000,22/11/2025,22/11/2026,51,Business LMN,Renewal,Corporate,CR029,0.1,22/11/2025,IPN035,76.5,4500,26,Health,LMN Insurance,Health Insurance,22/11/2026,RP035
+POL036,850000,08/12/2025,08/12/2026,85,Business ABC,New Business,Individual,CR036,0.18,08/12/2025,IPN036,127.5,7500,65,Property,ABC Insurance,Property Insurance,08/12/2026,RP036
+POL037,660000,14/01/2026,14/01/2027,66,Business XYZ,Policy Renewal,Corporate,CR037,0.16,14/01/2026,IPN037,99,5800,42,Auto,XYZ Insurers,Auto Coverage,14/01/2027,RP037
+POL038,890000,19/02/2026,19/02/2027,89,Business PQR,Renewal,Individual,CR038,0.12,19/02/2026,IPN038,133.5,7800,70,Health,PQR Underwriters,Health Insurance,19/02/2027,RP038
+POL039,440000,26/03/2026,26/03/2027,44,Business LMN,New Business,Corporate,CR039,0.09,26/03/2026,IPN039,66,3900,18,Property,LMN Insurance,Property Insurance,26/03/2027,RP039
+POL040,1160000,30/04/2026,30/04/2027,116,Business ABC,Policy Renewal,Individual,CR040,0.2,30/04/2026,IPN040,174,10200,85,Auto,ABC Insurance,Auto Coverage,30/04/2027,RP040
