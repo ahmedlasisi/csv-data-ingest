@@ -59,4 +59,4 @@ docker compose exec broker_app php bin/console lexik:jwt:generate-keypair --skip
 echo "🔄 Starting Up Server ..."
 symfony server:start -d
 
-echo "🎉 Demo environment is ready! You can access the application at https://127.0.0.1:8000/"
+echo "🎉 Demo environment is ready! You can access the application"
