@@ -1,106 +1,98 @@
 services:
-  app:
+  broker_app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: data_ingestion_app
+    container_name: broker_app
     restart: unless-stopped
+    depends_on:
+      - broker_mariadb
+      - broker_redis
     env_file:
       - .env
     environment:
       APP_ENV: ${APP_ENV}
       SERVER_NAME: 0.0.0.0:9000
-
       DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?serverVersion=${DB_VERSION}&charset=utf8mb4
 
       # DATABASE_URL: "pgsql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
     ports:
-      - "9000:80"
+      - "8780:80"
+    # entrypoint: /usr/local/bin/docker-entrypoint.sh
     volumes:
       - .:/var/www/symfony # Mount local files inside the container
       # - /var/www/symfony/var/cache # Exclude cache
       # - /var/www/symfony/var/logs # Exclude logs
       - ./var/cache:/var/www/symfony/var/cache
       - ./var/logs:/var/www/symfony/var/logs
+      - ./config/jwt:/var/www/symfony/config/jwt
 
-    # depends_on:
-    #   - database
     networks:
-      - mysqlmariadb_default
-      # - broker_network
+      - broker_network
 
-  redis:
+    command: >
+      sh -c "composer install && symfony server:start --no-interaction"
+
+  broker_mariadb:
+    container_name: broker_mariadb
+    image: mariadb:10.6
+    command: --default-authentication-plugin=mysql_native_password
+    working_dir: /var/lib/mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      LOAD_FIXTURES: ${LOAD_FIXTURES}
+
+    ports:
+      - "3706:3306"
+    cap_add:
+      - SYS_NICE # CAP_SYS_NICE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    networks:
+      - broker_network
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - broker_mariadb
+    ports:
+      - "8880:80"
+    environment:
+      PMA_HOST: broker_mariadb
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
+      UPLOAD_LIMIT: 100M
+    networks:
+      - broker_network
+
+  broker_redis:
     image: redis:latest
-    container_name: redis_cache
-    restart: always
+    container_name: broker_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
+    networks:
+      - broker_network
 
+# FOR REDIS
 volumes:
+  mariadb_data:
   redis_data:
     driver: local
 
-  # database:
-  #   image: postgres:16-alpine
-  #   container_name: data_ingestion_db
-  #   restart: always
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     POSTGRES_DB: ${DB_NAME}
-  #     POSTGRES_USER: ${DB_USER}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - db_data:/var/lib/postgresql/data
-  #   networks:
-  #     - broker_network
-
-  # pgbouncer:
-  #   image: edoburu/pgbouncer
-  #   container_name: data_ingestion_pgbouncer
-  #   restart: always
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DB_HOST: ${DB_HOST}
-  #     DB_PORT: ${DB_PORT}
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD: ${DB_PASSWORD}
-  #     DB_NAME: ${DB_NAME}
-  #   ports:
-  #     - "6432:6432"
-  #   networks:
-  #     - broker_network
-  #   depends_on:
-  #     - database
-
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   container_name: symfony_pgadmin
-  #   restart: unless-stopped
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-  #   ports:
-  #     - "5050:80"
-  #   depends_on:
-  #     - database
-  #   networks:
-  #     - broker_network
-
-# networks:
-#   broker_network:
-#     driver: bridge
-
 networks:
-  mysqlmariadb_default:
-    external: true
-# volumes:
-#   db_data:
+  broker_network:
+    driver: bridge
