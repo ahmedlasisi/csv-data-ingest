@@ -27,4 +27,4 @@ RUN mkdir -p /var/task/var/cache /var/task/var/log && \
 EXPOSE 9000
 
 # Use the default PHP-FPM entrypoint
-CMD ["public/index.php"]
+CMD ["php-fpm"]
