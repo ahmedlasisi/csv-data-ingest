@@ -1,50 +1,30 @@
-# Use official PHP 8.2 + Apache image
-FROM php:8.2-apache
+# Use the Bref PHP 8.2 FPM development image
+FROM bref/php-82-fpm-dev:latest
 
-# Install dependencies
-
-RUN apt-get update && apt-get install -y \
-    libxml2-dev \
-    libpq-dev \
-    libpq-dev \
-    libonig-dev \
-    libzip-dev \
-    git \
-    unzip \
-    mariadb-client \ 
-    && docker-php-ext-install pdo pdo_mysql zip
-
-# Set working directory
-WORKDIR /var/www/symfony
+# Install MySQL client and any other tools
+RUN apt-get update && \
+    apt-get install -y default-mysql-client && \
+    apt-get clean
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy entrypoint script
-COPY /docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Install Symfony CLI
+RUN curl -sS https://get.symfony.com/cli/installer | bash && \
+    mv /root/.symfony*/bin/symfony /usr/local/bin/symfony
 
-# Enable Apache Rewrite Module
-RUN a2enmod rewrite
+# Set the working directory
+WORKDIR /var/task
 
-# Set Apache DocumentRoot
-RUN sed -i 's|/var/www/html|/var/www/symfony/public|g' /etc/apache2/sites-available/000-default.conf
+# Copy the application files to /var/task (this is where Bref expects the app)
+COPY . /var/task
 
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+# Ensure cache and log directories are writable by any user (useful for local development)
+RUN mkdir -p /var/task/var/cache /var/task/var/log && \
+    chmod -R 777 /var/task/var/cache /var/task/var/log
 
+# Expose port 9000
+EXPOSE 9000
 
-# Ensure permissions
-RUN mkdir -p /var/www/symfony/var/cache /var/www/symfony/var/logs \
-    && chown -R www-data:www-data /var/www/symfony/var \
-    && chmod -R 775 /var/www/symfony/var
-
-
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Use entrypoint script
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-
-# Expose port 8000
-EXPOSE 8000
-
-# Set entrypoint script
+# Use the default PHP-FPM entrypoint
 CMD ["public/index.php"]

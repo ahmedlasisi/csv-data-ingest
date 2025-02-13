@@ -4,34 +4,35 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: broker_app
+    user: "root" # Run the container as the root user
     restart: unless-stopped
-    depends_on:
-      - broker_mariadb
-      - broker_redis
     env_file:
       - .env
     environment:
       APP_ENV: ${APP_ENV}
       SERVER_NAME: 0.0.0.0:9000
       DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?serverVersion=${DB_VERSION}&charset=utf8mb4
-
-      # DATABASE_URL: "pgsql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+      HANDLER: public/index.php
+      DOCUMENT_ROOT: public
     ports:
       - "8780:80"
-    # entrypoint: /usr/local/bin/docker-entrypoint.sh
     volumes:
-      - .:/var/www/symfony # Mount local files inside the container
-      # - /var/www/symfony/var/cache # Exclude cache
-      # - /var/www/symfony/var/logs # Exclude logs
-      - ./var/cache:/var/www/symfony/var/cache
-      - ./var/logs:/var/www/symfony/var/logs
-      - ./config/jwt:/var/www/symfony/config/jwt
-
+      - ./:/var/task # Mount local files inside the container
+      - ./var/cache:/var/task/var/cache
+      - ./var/logs:/var/task/var/log
     networks:
       - broker_network
-
     command: >
-      sh -c "composer install && symfony server:start --no-interaction"
+      sh -c "
+      composer install &&
+      php bin/console doctrine:database:create --if-not-exists &&
+      php bin/console doctrine:schema:update --force &&
+      if [ ! -f /var/task/fixtures_loaded ]; then
+        php bin/console doctrine:fixtures:load --no-interaction &&
+        touch /var/task/fixtures_loaded;
+      fi &&
+      php-fpm
+      "
 
   broker_mariadb:
     container_name: broker_mariadb
@@ -44,18 +45,11 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
-      LOAD_FIXTURES: ${LOAD_FIXTURES}
-
     ports:
       - "3706:3306"
-    cap_add:
-      - SYS_NICE # CAP_SYS_NICE
-    security_opt:
-      - seccomp:unconfined
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
-
     networks:
       - broker_network
 
@@ -71,7 +65,6 @@ services:
       PMA_HOST: broker_mariadb
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASSWORD}
-      UPLOAD_LIMIT: 100M
     networks:
       - broker_network
 
@@ -87,11 +80,9 @@ services:
     networks:
       - broker_network
 
-# FOR REDIS
 volumes:
   mariadb_data:
   redis_data:
-    driver: local
 
 networks:
   broker_network:

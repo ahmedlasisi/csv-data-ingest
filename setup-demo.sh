@@ -14,7 +14,6 @@ for VOLUME in "${REQUIRED_VOLUMES[@]}"; do
     fi
 done
 
-
 echo "🚀 Setting up environment variables dynamically..."
 
 # Generate secure values for placeholders
@@ -39,11 +38,11 @@ fi
 
 echo "🔄 Stopping running containers (if any)..."
 docker compose down
-
+docker compose build
 
 # Step 2: Start Docker Containers
 echo "🐳 Starting Docker containers..."
-docker compose up -d --build
+docker compose up
 
 # Ensure MariaDB is fully ready before proceeding
 echo "⏳ Waiting for MariaDB to be ready..."
@@ -60,44 +59,28 @@ if [ $attempts -eq $max_attempts ]; then
     exit 1
 fi
 
-echo "✅ Database is ready!"  
-
-# Run database migrations
-echo "📊 Checking if migrations are needed..."
-docker exec broker_app php bin/console doctrine:migrations:status --no-interaction | grep -q "executed migrations" || {
-    echo "📦 Running migrations..."
-    docker exec broker_app php bin/console doctrine:migrations:migrate --no-interaction
-}
-
-# Step 4: Seed Initial Database Data
-echo "🌱 Seeding initial database data..."
-docker compose exec broker_app php bin/console doctrine:fixtures:load --no-interaction
-
+echo "✅ Database is ready!"
 
 # Generate JWT Keys (Skip if they already exist)
 echo "🔑 Generating JWT keys..."
 docker compose exec broker_app php bin/console lexik:jwt:generate-keypair --skip-if-exists
 
-# **Ensure Cache & Log Directories Exist**
+# Ensure Cache & Log Directories Exist
 echo "🛠️ Ensuring cache & log directories exist..."
 docker compose exec broker_app bash -c "
     mkdir -p var/cache var/log && \
     chown -R www-data:www-data var/cache var/log && \
-    chmod -R 775 var/cache var/log
-    
+    chmod -R 777 var/cache var/log
 "
 
-# **Clear and Warm Up Cache Properly**
-# echo "🗑️ Clearing cache safely..."
-# docker compose exec broker_app bash -c "
-#     rm -rf var/cache/* && \
-#     php bin/console cache:clear --env=prod --no-debug && \
-#     php bin/console cache:warmup --env=prod
-# "
+# Clear and Warm Up Cache Properly
+echo "🗑️ Clearing cache safely..."
+docker compose exec broker_app bash -c "
+    php bin/console cache:clear && \
+    php bin/console cache:warmup
+"
 
-# **Restart Symfony Server (Ensure Old Instances Are Stopped)**
-# echo "🔄 Restarting Symfony Server..."
-# symfony server:stop || true
-# symfony server:start -d
+# Restart Symfony Server (Ensure Old Instances Are Stopped)
+docker compose restart broker_app
 
 echo "🎉 Demo environment is ready! You can access the application."
