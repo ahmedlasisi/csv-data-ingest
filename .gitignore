@@ -35,3 +35,5 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 /node_modules
+fixtures_loaded
+.vscode/settings.json

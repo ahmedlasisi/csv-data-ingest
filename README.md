@@ -33,7 +33,7 @@ Ensure you have the following installed before setup:
 **1️⃣ Clone the Repository**
 
 ```sh
-git clone github.com/ahmedlasisi/csv-data-ingest.git
+git clone https://github.com/ahmedlasisi/csv-data-ingest.git
 cd csv-data-ingest
 ```
 
@@ -44,6 +44,8 @@ chmod +x setup-demo.sh
 ./setup-demo.sh
 ```
 
+If using Visual Studio Code and you see message like “Visual Studio Code” would like to access data from other apps. Click allow.
+
 ✨ What This Script Does
 
 ✔️ Creates & starts Docker containers
@@ -52,13 +54,23 @@ chmod +x setup-demo.sh
 
 ✔️ Runs database migrations
 
-✔️ Seeds demo data (Test Brokers & Configs)
-
 ✔️ Generates JWT keys
 
 ✔️ Clears & warms up cache
 
 ✔️ Restarts all services
+
+Run this again to make sure admin login details and other config set up data required to run the system are included
+
+```sh
+php bin/console doctrine:fixtures:load --env=dev --no-interaction
+```
+
+Start the server
+
+```sh
+symfony server:start
+```
 
 **3️⃣ Access the Application**
 
@@ -178,4 +190,10 @@ For a detailed test output:
 
 ```sh
  php bin/phpunit --testdox --debug
+```
+
+To stop and remove all the services and docker setup
+
+```sh
+ docker compose down
 ```
