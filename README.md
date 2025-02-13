@@ -1,6 +1,6 @@
 # 🚀 Broker Data Ingestion & Aggregation System
 
-This project is a multi-tenant **broker data ingestion & analytics system** built with **Symfony 7**, **MariaDB**, **Redis**, and **Docker**. It supports **OAuth2 authentication**, **JWT security**, **multi-source policy imports**, and **real-time WebSockets updates**.
+This project is a multi-tenant **broker data ingestion & analytics system** built with **Symfony 7**, **MariaDB**, **Redis**, and **Docker**. It supports **JWT security**, **multi-source policy imports**, and **real-time WebSockets updates**.
 
 ## **🔹 Features**
 
@@ -8,10 +8,13 @@ This project is a multi-tenant **broker data ingestion & analytics system** buil
 ✔️ Configurable CSV Policy Import (Auto-Mapping)  
 ✔️ Data Aggregation & Reporting (Total Policies, Customers, Premiums, etc.)  
 ✔️ Redis Caching for Performance Boost  
-✔️ WebSocket for Real-Time Updates  
-✔️ OAuth2 & JWT-Based Authentication  
-✔️ Background Job Processing  
+✔️ JWT-Based Authentication  
+✔️ Background CLI Job Processing  
 ✔️ Dockerized for Easy Deployment
+
+![image info](./dashboard.png)
+
+![image info](./setting.png)
 
 ---
 
@@ -47,7 +50,7 @@ chmod +x setup-demo.sh
 ✔️ Waits for MariaDB to be ready
 ✔️ Runs database migrations
 ✔️ Seeds demo data (Test Brokers & Configs)
-✔️ Generates JWT/OAuth keys
+✔️ Generates JWT keys
 ✔️ Clears & warms up cache
 ✔️ Restarts all services
 
@@ -140,25 +143,29 @@ DELETE /api/brokers/{uuid}/clear Clear broker policies data
 Enabled for aggregated data queries.
 Clears automatically when broker configs change.
 
-✅ Dockerized PHPMyAdmin
+**✅ Dockerized PHPMyAdmin**
 To view database data, PhpMyAdmin is included:
 
 Access at http://127.0.0.1:8080
+If required checked the .env file for the generate values for DB_USER and DB_PASSWORD for use
+
 Login using:
 Server: broker_mariadb
 User: $DB_USER
 Password: $DB_PASSWORD
 
-If required checked
+**Testing Framework**
+PHPUnit is used to verify that the core functionalities, database interactions, and services work as expected.
 
-✅ Background Job Processing
-Importing broker policies from CSV runs asynchronous background jobs.
+Run the PHPUnit Tests
+To execute all tests covered:
 
-🚨 Troubleshooting
+```sh
+php bin/phpunit
+```
 
-Issue Solution
-Database not connecting Run docker ps & ensure broker_mariadb is running.
-MariaDB stuck in "Waiting for Ready" Increase sleep time in setup-demo.sh.
-Access Forbidden (403) on API Ensure JWT keys are generated.
-Docker logs show php_network_getaddresses: getaddrinfo failed Check that DB_HOST=broker_mariadb matches docker-compose.yml.
-Redis not caching data Run docker compose exec broker_redis redis-cli monitor to debug.
+or for a more detail list
+
+```sh
+ php bin/phpunit --testdox --debug
+```
