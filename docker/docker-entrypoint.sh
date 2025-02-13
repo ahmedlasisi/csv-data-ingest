@@ -26,11 +26,6 @@ if ! php bin/console doctrine:migrations:status | grep -q "executed migrations";
     php bin/console doctrine:migrations:migrate --no-interaction
 fi
 
-# Load seed data if needed (Optional)
-if [ "$LOAD_FIXTURES" = "true" ]; then
-  echo "🌱 Loading fixtures..."
-  php bin/console doctrine:fixtures:load --no-interaction
-fi
 
 # Generate JWT keys if they don't exist
 if [ ! -f config/jwt/private.pem ] || [ ! -f config/jwt/public.pem ]; then
@@ -38,10 +33,6 @@ if [ ! -f config/jwt/private.pem ] || [ ! -f config/jwt/public.pem ]; then
     php bin/console lexik:jwt:generate-keypair --force
 fi
 
-# Clear and warm up Symfony cache
-echo "🗑️ Clearing cache..."
-php bin/console cache:clear
-php bin/console cache:warmup
 
 # Execute the CMD from the Dockerfile (e.g., Apache or PHP-FPM)
 exec "$@"
