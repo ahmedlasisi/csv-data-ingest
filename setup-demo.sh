@@ -1,7 +1,19 @@
 #!/bin/bash
-set -e
+set -euo pipefail  # Strict error handling
 
-echo "🚀 Setting up Data Ingestion Demo Environment..."
+echo "🚀 Setting up project environment..."
+
+# Check and create necessary Docker volumes
+REQUIRED_VOLUMES=("mariadb_data" "redis_data")
+for VOLUME in "${REQUIRED_VOLUMES[@]}"; do
+    if ! docker volume inspect "$VOLUME" &>/dev/null; then
+        echo "⚠️  Volume $VOLUME not found. Creating it..."
+        docker volume create "$VOLUME"
+    else
+        echo "✅ Volume $VOLUME exists."
+    fi
+done
+
 
 echo "🚀 Setting up environment variables dynamically..."
 
@@ -19,20 +31,19 @@ sed -i '' "s|__JWT_PASSPHRASE__|$JWT_PASSPHRASE|" ./.env.docker
 sed -i '' "s|__OAUTH_PASSPHRASE__|$OAUTH_PASSPHRASE|" ./.env.docker
 sed -i '' "s|__OAUTH_ENCRYPTION_KEY__|$OAUTH_ENCRYPTION_KEY|" ./.env.docker
 
-# Copy .env.docker to .env (if not exists)
+# Copy .env.docker to .env if not exists
 if [ ! -f .env ]; then
-echo "📄 Creating .env from .env.docker..."
-cp .env.docker .env
+    echo "📄 Creating .env from .env.docker..."
+    cp .env.docker .env
 fi
 
 echo "🔄 Stopping running containers (if any)..."
-docker compose down -v
-docker compose build --no-cache
+docker compose down
 
-#  Start Docker Containers
+
+# Step 2: Start Docker Containers
 echo "🐳 Starting Docker containers..."
-docker compose up -d
-
+docker compose up -d --build
 
 # Ensure MariaDB is fully ready before proceeding
 echo "⏳ Waiting for MariaDB to be ready..."
@@ -51,12 +62,42 @@ fi
 
 echo "✅ Database is ready!"  
 
-# Generate JWT Keys
+# Run database migrations
+echo "📊 Checking if migrations are needed..."
+docker exec broker_app php bin/console doctrine:migrations:status --no-interaction | grep -q "executed migrations" || {
+    echo "📦 Running migrations..."
+    docker exec broker_app php bin/console doctrine:migrations:migrate --no-interaction
+}
+
+# Step 4: Seed Initial Database Data
+echo "🌱 Seeding initial database data..."
+docker compose exec broker_app php bin/console doctrine:fixtures:load --no-interaction
+
+
+# Generate JWT Keys (Skip if they already exist)
 echo "🔑 Generating JWT keys..."
 docker compose exec broker_app php bin/console lexik:jwt:generate-keypair --skip-if-exists
 
-# Restart Containers to Apply Changes
-echo "🔄 Starting Up Server ..."
-symfony server:start -d
+# **Ensure Cache & Log Directories Exist**
+echo "🛠️ Ensuring cache & log directories exist..."
+docker compose exec broker_app bash -c "
+    mkdir -p var/cache var/log && \
+    chown -R www-data:www-data var/cache var/log && \
+    chmod -R 775 var/cache var/log
+    
+"
 
-echo "🎉 Demo environment is ready! You can access the application"
+# **Clear and Warm Up Cache Properly**
+# echo "🗑️ Clearing cache safely..."
+# docker compose exec broker_app bash -c "
+#     rm -rf var/cache/* && \
+#     php bin/console cache:clear --env=prod --no-debug && \
+#     php bin/console cache:warmup --env=prod
+# "
+
+# **Restart Symfony Server (Ensure Old Instances Are Stopped)**
+# echo "🔄 Restarting Symfony Server..."
+# symfony server:stop || true
+# symfony server:start -d
+
+echo "🎉 Demo environment is ready! You can access the application."
