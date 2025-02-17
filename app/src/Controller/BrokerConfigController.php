@@ -131,6 +131,7 @@ class BrokerConfigController extends AbstractController
     #[Route('/config/upload/{uuid}', name: 'broker_upload_csv', methods: ['POST'])]
     public function uploadCsv(Request $request, string $format, string $uuid): Response
     {
+        // dd($request->files->get('csv_file'));
         $broker = $this->getEntityByUuid($uuid, Broker::class, $format);
 
         if (!($broker instanceof Broker)) {
@@ -139,6 +140,11 @@ class BrokerConfigController extends AbstractController
        
         $file = $request->files->get('csv_file');
         if (!$file) {
+            $message ='Broker configuration csv file required';
+
+            if ($format === 'admin') {
+                $this->addFlash('error', $message);
+            }
             return $this->handleError($format, 'No file uploaded.');
         }
 

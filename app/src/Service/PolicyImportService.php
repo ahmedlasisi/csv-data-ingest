@@ -144,34 +144,6 @@ class PolicyImportService
         return $csv;
     }
 
-    // private function processRecords(iterable $records, array $fileMapping, Broker $broker, ?SymfonyStyle $io = null): void
-    // {
-    //     $batchSize = 50;
-    //     $i = 0;
-
-    //     foreach ($records as $record) {
-    //         try {
-    //             if (!$this->entityManager->isOpen()) {
-    //                 $this->resetEntityManager();
-    //             }
-
-    //             $transformedRecord = $this->transformCsvRecord($record, $fileMapping);
-    //             $this->processRecord($transformedRecord, $broker);
-
-    //             if (++$i % $batchSize === 0) {
-    //                 $this->entityManager->flush();
-    //                 $this->entityManager->clear();
-    //                 $this->clearCaches();
-    //             }
-    //         } catch (\Throwable $e) {
-    //             $this->handleRecordError($e);
-    //         }
-    //     }
-    //     if ($this->entityManager->isOpen()) {
-    //         $this->entityManager->flush();
-    //     }
-    // }
-
     private function processRecords(iterable $records, array $fileMapping, Broker $broker, ?SymfonyStyle $io = null): void
     {
         $batchSize = 50;

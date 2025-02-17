@@ -50,7 +50,7 @@
                 Edit
               </a>
               <!-- CSV Upload Form -->
-              <form action="{{ path('admin_broker_upload_csv', {uuid: broker.uuid}) }}" method="POST" enctype="multipart/form-data" class="d-inline">
+              <form action="{{ path('broker_upload_csv', {uuid: broker.uuid, 'format': 'admin'}) }}" method="POST" enctype="multipart/form-data" class="d-inline">
                 <input type="file" name="csv_file" accept=".csv" required class="form-control d-inline-block w-auto">
                   <button type="submit" class="btn btn-primary btn-sm">
                     Upload CSV
