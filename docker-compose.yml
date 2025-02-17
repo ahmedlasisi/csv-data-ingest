@@ -1,89 +1,78 @@
 services:
-  broker_app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: broker_app
-    user: "root" # Run the container as the root user
+  app:
+    build: .
+    container_name: ${PROJECT_NAME}_app
     restart: unless-stopped
-    env_file:
-      - .env
+    volumes:
+      - .:/var/www/html
+    working_dir: /var/www/html/app
     environment:
-      APP_ENV: ${APP_ENV}
-      SERVER_NAME: 0.0.0.0:9000
+      APP_ENV: 
       DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?serverVersion=${DB_VERSION}&charset=utf8mb4
       HANDLER: public/index.php
       DOCUMENT_ROOT: public
-    ports:
-      - "8780:80"
-    volumes:
-      - ./:/var/task # Mount local files inside the container
-      - ./var/cache:/var/task/var/cache
-      - ./var/logs:/var/task/var/log
+    depends_on:
+      - database
+      - redis
     networks:
-      - broker_network
-    command: >
-      sh -c "
-      composer install &&
-      php bin/console doctrine:database:create --if-not-exists &&
-      php bin/console doctrine:schema:update --force &&
-      if [ ! -f /var/task/fixtures_loaded ]; then
-        php bin/console doctrine:fixtures:load --no-interaction &&
-        touch /var/task/fixtures_loaded;
-      fi &&
-      php-fpm
-      "
+      - connecting_network
 
-  broker_mariadb:
-    container_name: broker_mariadb
-    image: mariadb:10.6
-    command: --default-authentication-plugin=mysql_native_password
-    working_dir: /var/lib/mysql
+  webserver:
+    image: nginx:alpine
+    container_name: ${PROJECT_NAME}_nginx
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./certs:/etc/nginx/certs
+      - ./snippets:/etc/nginx/snippets
+    ports:
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
+    depends_on:
+      - app
+    networks:
+      - connecting_network
+
+  database:
+    image: mariadb:11.4.5
+    container_name: ${PROJECT_NAME}_mariadb
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_DATABASE: ${PROJECT_NAME}_db
+      MYSQL_USER: ${PROJECT_NAME}_user
+      MYSQL_PASSWORD: $DB_PASSWORD
     ports:
-      - "3706:3306"
+      - "3806:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/db/data:/var/lib/mysql
     networks:
-      - broker_network
+      - connecting_network
+
+  redis:
+    image: redis:alpine
+    container_name: ${PROJECT_NAME}_redis
+    restart: unless-stopped
+    networks:
+      - connecting_network
 
   phpmyadmin:
-    container_name: phpmyadmin
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin:latest
+    container_name: ${PROJECT_NAME}_phpmyadmin
     restart: unless-stopped
-    depends_on:
-      - broker_mariadb
+    environment:
+      PMA_HOST: database
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     ports:
       - "8880:80"
-    environment:
-      PMA_HOST: broker_mariadb
-      PMA_USER: ${DB_USER}
-      PMA_PASSWORD: ${DB_PASSWORD}
     networks:
-      - broker_network
+      - connecting_network
 
-  broker_redis:
-    image: redis:latest
-    container_name: broker_redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis_data:/data
-    networks:
-      - broker_network
+networks:
+  connecting_network:
+    driver: bridge
 
 volumes:
   mariadb_data:
-  redis_data:
-
-networks:
-  broker_network:
-    driver: bridge
