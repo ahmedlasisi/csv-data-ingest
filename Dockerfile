@@ -1,30 +1,30 @@
-# Use the Bref PHP 8.2 FPM development image
-FROM bref/php-82-fpm-dev:latest
+# Use the official PHP image as the base image
+FROM php:8.2-fpm
 
-# Install MySQL client and any other tools
-RUN apt-get update && \
-    apt-get install -y default-mysql-client && \
-    apt-get clean
+# Set working directory
+WORKDIR /var/www/html
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y     git     curl     libpng-dev     libjpeg-dev     libfreetype6-dev     libonig-dev     libxml2-dev     zip     unzip
+
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Symfony CLI
-RUN curl -sS https://get.symfony.com/cli/installer | bash && \
-    mv /root/.symfony*/bin/symfony /usr/local/bin/symfony
+# Copy existing application directory contents
+COPY . /var/www/html
 
-# Set the working directory
-WORKDIR /var/task
+# Copy existing application directory permissions
+COPY --chown=www-data:www-data . /var/www/html
 
-# Copy the application files to /var/task (this is where Bref expects the app)
-COPY . /var/task
+# Change current user to www
+USER www-data
 
-# Ensure cache and log directories are writable by any user (useful for local development)
-RUN mkdir -p /var/task/var/cache /var/task/var/log && \
-    chmod -R 777 /var/task/var/cache /var/task/var/log
-
-# Expose port 9000
+# Expose port 9000 and start php-fpm server
 EXPOSE 9000
-
-# Use the default PHP-FPM entrypoint
 CMD ["php-fpm"]
