@@ -24,7 +24,7 @@ Ensure you have the following installed before setup:
 
 - **Docker** (Latest Version) → [Install Docker](https://docs.docker.com/get-docker/)
 - **Docker Compose** (Latest Version) → [Install Docker Compose](https://docs.docker.com/compose/install/)
-- **GNU Bash** (`setup-demo.sh` requires Bash) → Install via Homebrew (Mac) or `apt/yum` (Linux)
+- **GNU Bash** (`setup.sh` requires Bash) → Install via Homebrew (Mac) or `apt/yum` (Linux)
 
 ---
 
@@ -40,8 +40,8 @@ cd csv-data-ingest
 **2️⃣ Run the Setup Script**
 
 ```sh
-chmod +x setup-demo.sh
-./setup-demo.sh
+chmod +x setup.sh
+./setup.sh
 ```
 
 If using Visual Studio Code and you see message like “Visual Studio Code” would like to access data from other apps. Click allow.
@@ -94,7 +94,7 @@ Password: Admin123
 
 🛠️ Environment Variables
 
-The system reads configuration from .env.docker. The setup-demo.sh ensures all required variables are set. To customize, edit .env.docker accordingly
+The system reads configuration from .env.docker. The setup.sh ensures all required variables are set. To customize, edit .env.docker accordingly
 
 **Import and Ingest Policies**
 
