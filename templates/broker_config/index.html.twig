@@ -49,29 +49,39 @@
               <a href="{{ path('broker_config_edit', {'uuid': broker.uuid, 'format': 'admin'}) }}" class="btn btn-primary btn-sm">
                 Edit
               </a>
-              {# <a href="#" class="delete-btn" data-url="{{ path('admin_broker_config_delete', {'uuid': broker.uuid}) }}">
-                Delete
-              </a> #}
-              <a href="#" class="btn btn-danger btn-sm clear-policies-btn" data-url="{{ path('api_clear_broker_policy_data', {'uuid': broker.uuid, 'format': 'admin'}) }}">
-                Clear Policies Data
-              </a>
-              <a href="#" class="btn btn-danger btn-sm clear-all-btn" data-url="{{ path('api_clear_all_broker_data', {'uuid': broker.uuid, 'format': 'admin'}) }}">
-                Clear All Data
-              </a>
-              <form action="{{ path('broker_config_delete', {'uuid': broker.uuid, 'format': 'admin'}) }}" method="POST" class="d-inline">
-                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ broker.uuid) }}">
-                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">
-                    Delete Broker
+              <!-- CSV Upload Form -->
+              <form action="{{ path('admin_broker_upload_csv', {uuid: broker.uuid}) }}" method="POST" enctype="multipart/form-data" class="d-inline">
+                <input type="file" name="csv_file" accept=".csv" required class="form-control d-inline-block w-auto">
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    Upload CSV
                   </button>
                 </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
 
-    <script>
+                <!-- Clear Broker Data Button -->
+
+                {# <a href="#" class="delete-btn" data-url="{{ path('admin_broker_config_delete', {'uuid': broker.uuid}) }}">
+                  Delete
+                </a> #}
+                <a href="#" class="btn btn-danger btn-sm clear-policies-btn" data-url="{{ path('api_clear_broker_policy_data', {'uuid': broker.uuid, 'format': 'admin'}) }}">
+                  Clear Policies Data
+                </a>
+                <a href="#" class="btn btn-danger btn-sm clear-all-btn" data-url="{{ path('api_clear_all_broker_data', {'uuid': broker.uuid, 'format': 'admin'}) }}">
+                  Clear All Data
+                </a>
+                <form action="{{ path('broker_config_delete', {'uuid': broker.uuid, 'format': 'admin'}) }}" method="POST" class="d-inline">
+                  <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ broker.uuid) }}">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">
+                      Delete Broker
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <script>
   document.querySelectorAll('.clear-policies-btn').forEach(button => {
       button.addEventListener('click', function() {
           if (confirm("Are you sure you want to clear policies?")) {
@@ -101,5 +111,5 @@
   });
 </script>
 
-  {% endblock %}
-  
+    {% endblock %}
+    
