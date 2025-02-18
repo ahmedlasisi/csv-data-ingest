@@ -1,17 +1,18 @@
 
 ###> symfony/framework-bundle ###
 /.env
-/.env.test
-/.env.dev
-/.env.local
-/.env.production
-/.env.local.php
+/app/.env
+/app/.env.test
+/app/.env.dev
+/app/.env.local
+/app/.env.production
+/app/.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
-/var/*
+/app/var/*
 !/var/data/
-/vendor/
+/app/vendor/
 ###< symfony/framework-bundle ###
 
 ###> symfony/phpunit-bridge ###
@@ -37,3 +38,7 @@
 /node_modules
 fixtures_loaded
 .vscode/settings.json
+material/
+/docker/
+certs/
+snippets/fastcgi-php.conf
