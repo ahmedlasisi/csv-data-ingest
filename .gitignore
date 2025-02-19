@@ -42,3 +42,5 @@ material/
 /docker/
 certs/
 /app/config/jwt/*
+/app/config/jwt/private.pem
+/app/config/jwt/public.pem
