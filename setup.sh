@@ -102,11 +102,10 @@ EOF
 
 sleep 3
 
-
 echo "Installing mkcert..."
 if ! command -v mkcert &> /dev/null; then
-    brew install mkcert
-    brew install nss # If you use Firefox
+    echo "Install mkcert. Required mkcert command not found. Exiting..."
+    exit 1
 fi
 
 echo "Creating local CA with mkcert..."
@@ -143,10 +142,6 @@ else
     echo "Directory $APP_DIR/app/public does not exist."
 fi
 
-# # Exclude .git directory from being copied to the server
-# rsync -av --exclude='.git' "$APP_DIR/app/" /var/www/html/
-
-# sudo docker compose exec app chown -R www-data:www-data /var/www/html
 
 # Ensure database is ready
 echo "⏳ Waiting for MariaDB to be ready..."
@@ -169,8 +164,8 @@ if ! docker compose exec -T app php bin/console doctrine:migrations:status | gre
     docker compose exec -T app php bin/console doctrine:migrations:migrate --no-interaction
 fi
 
+echo "🔑 Generating JWT Keys (Skip if they already exist)."
 docker compose exec -T app php bin/console lexik:jwt:generate-keypair --skip-if-exists
-echo "📦 Generated JWT Keys (Skip if they already exist)."
 
 # Load Symfony fixtures if any exist
 if docker compose exec -T app php bin/console doctrine:fixtures:load --no-interaction; then
@@ -186,8 +181,7 @@ if [ -f "$APP_DIR/init/init.sql" ]; then
     echo "📄 Loading SQL queries from init.sql..."
     docker compose exec -T database mariadb -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "init/init.sql"
     echo "✅ SQL queries from init.sql loaded."
-else
-    echo "⚠️ init.sql file not found."
+
 fi
 
 echo "Setup complete! Visit https://$DOMAIN in your browser."
