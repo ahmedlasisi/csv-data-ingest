@@ -3,117 +3,192 @@ set -euo pipefail  # Strict error handling
 
 echo "🚀 Setting up project environment..."
 
-# Check and create necessary Docker volumes
-REQUIRED_VOLUMES=("mariadb_data" "redis_data")
-for VOLUME in "${REQUIRED_VOLUMES[@]}"; do
-    if ! docker volume inspect "$VOLUME" &>/dev/null; then
-        echo "⚠️  Volume $VOLUME not found. Creating it..."
-        docker volume create "$VOLUME"
-    else
-        echo "✅ Volume $VOLUME exists."
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+PROJECT_NAME="broker"
+HTTP_PORT=${2:-8080}  # Default HTTP port to 80 if not provided
+HTTPS_PORT=${3:-443}  # Default HTTPS port to 443 if not provided
+DB_PORT=3306
+DB_PORT_WEB=3806
+DOMAIN="$PROJECT_NAME.test"
+DB_HOST="${PROJECT_NAME}_mariadb"
+DB_NAME="${PROJECT_NAME}_db"
+DB_USER="${PROJECT_NAME}_user"
+PHP_VERSION="8.2"
+DB_IMAGE=mariadb:11.4.5
+DB_VERSION=11.4.5-MariaDB-1
+EMAIL="hello@$PROJECT_NAME.com"
+DATABASE_URL="mysql://\${DB_USER}:\${DB_PASSWORD}@\${DB_HOST}:\${DB_PORT}/\${DB_NAME}?serverVersion=\${DB_VERSION}&charset=utf8mb4"
+
+# Function to check if a port is available
+check_port() {
+    local PORT=$1
+    if lsof -i:$PORT >/dev/null; then
+        echo "Port $PORT is already in use by the following process:"
+        lsof -i:$PORT
+        read -p "Do you want to free up port $PORT? (y/n): " choice
+        case "$choice" in
+            y|Y )
+                echo "Freeing up port $PORT..."
+                PID=$(lsof -ti:$PORT)
+                if [ -n "$PID" ]; then
+                    kill -9 $PID
+                    echo "Port $PORT has been freed."
+                else
+                    echo "Failed to free up port $PORT."
+                    exit 1
+                fi
+                ;;
+            n|N )
+                echo "Port $PORT is in use. Exiting..."
+                exit 1
+                ;;
+            * )
+                echo "Invalid choice. Exiting..."
+                exit 1
+                ;;
+        esac
     fi
-done
+}
 
-echo "🚀 Setting up environment variables dynamically..."
+# Check if the specified ports are available
+check_port $HTTP_PORT
 
-# Generate secure values for placeholders
+echo "Creating project directory in $APP_DIR..."
+mkdir -p app && cd app
+
+echo "Checking .env file..."
+echo "📄 Creating .env from .env.docker..."
+cp "$APP_DIR/.env.docker" "$APP_DIR/app/.env"
+
+
 APP_SECRET=$(openssl rand -hex 32)
 DB_PASSWORD=$(openssl rand -hex 20)
+DB_ROOT_PASSWORD=$(openssl rand -hex 25)
 JWT_PASSPHRASE=$(openssl rand -hex 64)
 OAUTH_PASSPHRASE=$(openssl rand -hex 32)
 OAUTH_ENCRYPTION_KEY=$(openssl rand -hex 32)
 
-# Replace placeholders in .env.docker
-sed -i '' "s|__APP_SECRET__|$APP_SECRET|" ./.env.docker
-sed -i '' "s|__DB_PASSWORD__|$DB_PASSWORD|" ./.env.docker
-sed -i '' "s|__JWT_PASSPHRASE__|$JWT_PASSPHRASE|" ./.env.docker
-sed -i '' "s|__OAUTH_PASSPHRASE__|$OAUTH_PASSPHRASE|" ./.env.docker
-sed -i '' "s|__OAUTH_ENCRYPTION_KEY__|$OAUTH_ENCRYPTION_KEY|" ./.env.docker
+echo "🚀 Setting up environment variables dynamically..."
 
-# Copy .env.docker to .env if not exists
-if [ ! -f .env ]; then
-    echo "📄 Creating .env from .env.docker..."
-    cp .env.docker .env
+sed -i '' "s|__APP_SECRET__|$APP_SECRET|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_HOST__|$DB_HOST|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_PORT__|$DB_PORT|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_PORT_WEB__|$DB_PORT_WEB|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_NAME__|$DB_NAME|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_USER__|$DB_USER|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_PASSWORD__|$DB_PASSWORD|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_ROOT_PASSWORD__|$DB_ROOT_PASSWORD|" "$APP_DIR/app/.env"
+sed -i '' "s|__DB_VERSION__|$DB_VERSION|" "$APP_DIR/app/.env"
+sed -i '' "s|__JWT_PASSPHRASE__|$JWT_PASSPHRASE|" "$APP_DIR/app/.env"
+sed -i '' "s|__OAUTH_PASSPHRASE__|$OAUTH_PASSPHRASE|" "$APP_DIR/app/.env"
+sed -i '' "s|__OAUTH_ENCRYPTION_KEY__|$OAUTH_ENCRYPTION_KEY|" "$APP_DIR/app/.env"
+
+# Create .env file for Docker Compose
+cat <<EOF > "$APP_DIR/.env"
+APP_ENV=dev
+PROJECT_NAME=$PROJECT_NAME
+DB_PORT=$DB_PORT
+DB_VERSION=$DB_VERSION
+DB_USER=${PROJECT_NAME}_user
+DB_HOST=${PROJECT_NAME}_mariadb
+DB_NAME=${PROJECT_NAME}_db
+DB_PASSWORD=$DB_PASSWORD
+DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+HTTP_PORT=$HTTP_PORT
+HTTPS_PORT=$HTTPS_PORT
+
+EOF
+
+sleep 3
+
+
+echo "Installing mkcert..."
+if ! command -v mkcert &> /dev/null; then
+    brew install mkcert
+    brew install nss # If you use Firefox
 fi
 
-echo "🔄 Stopping running containers (if any)..."
-# docker compose down --remove-orphans -v
-# docker compose build
+echo "Creating local CA with mkcert..."
+mkcert -install
+mkdir -p "$APP_DIR/certs"
 
-# Step 2: Start Docker Containers
-echo "🐳 Starting Docker containers..."
-docker compose up -d
+echo "Generating SSL certificates with mkcert..."
+mkcert -cert-file "$APP_DIR/certs/$DOMAIN.pem" -key-file "$APP_DIR/certs/$DOMAIN-key.pem" $DOMAIN phpmyadmin.$DOMAIN
 
-# Ensure MariaDB is fully ready before proceeding
+echo "Updating /etc/hosts file..."
+# Add entry to /etc/hosts
+if ! grep -q "$DOMAIN" /etc/hosts; then
+    echo "127.0.0.1 $DOMAIN" | sudo tee -a /etc/hosts
+fi
+if ! grep -q "phpmyadmin.$DOMAIN" /etc/hosts; then
+    echo "127.0.0.1 phpmyadmin.$DOMAIN" | sudo tee -a /etc/hosts
+fi
+
+echo "Starting Docker containers..."
+cd "$APP_DIR"
+docker compose down
+docker compose up -d --build
+
+echo "Ensuring correct file permissions..."
+if [ -d "$APP_DIR/app/var" ]; then
+    chmod -R 775 "$APP_DIR/app/var"
+else
+    echo "Directory $APP_DIR/app/var does not exist."
+fi
+
+if [ -d "$APP_DIR/app/public" ]; then
+    chmod -R 775 "$APP_DIR/app/public"
+else
+    echo "Directory $APP_DIR/app/public does not exist."
+fi
+
+# # Exclude .git directory from being copied to the server
+# rsync -av --exclude='.git' "$APP_DIR/app/" /var/www/html/
+
+# sudo docker compose exec app chown -R www-data:www-data /var/www/html
+
+# Ensure database is ready
 echo "⏳ Waiting for MariaDB to be ready..."
-max_attempts=5
-attempts=0
-until docker exec broker_mariadb mysqladmin ping -h"broker_mariadb" --silent &>/dev/null || [ $attempts -eq $max_attempts ]; do
-    echo "⏳ DB is still initializing... retrying in 2 seconds ($((++attempts))/$max_attempts)"
+timeout=100
+elapsed=0
+while ! docker compose exec -T database mariadb -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" -e "SELECT 1" >/dev/null 2>&1; do
     sleep 2
+    elapsed=$((elapsed + 2))
+    if [ $elapsed -ge $timeout ]; then
+        echo "❌ MariaDB is not ready after $timeout seconds."
+        exit 1
+    fi
 done
 
-# If max attempts are reached, exit with error
-if [ $attempts -eq $max_attempts ]; then
-    echo "❌ DB failed to start after multiple attempts. Check logs with 'docker logs broker_mariadb'."
-    exit 1
+echo "✅ MariaDB is ready."
+
+# Run migrations only if the database is empty
+if ! docker compose exec -T app php bin/console doctrine:migrations:status | grep -q "executed migrations"; then
+    echo "📦 Running database migrations..."
+    docker compose exec -T app php bin/console doctrine:migrations:migrate --no-interaction
 fi
 
-echo "✅ Database is ready!"
+docker compose exec -T app php bin/console lexik:jwt:generate-keypair --skip-if-exists
+echo "📦 Generated JWT Keys (Skip if they already exist)."
 
-# Generate JWT Keys (Skip if they already exist)
-echo "🔑 Generating JWT keys..."
-# Ensure the broker_app container is running before generating JWT keys
-if docker ps | grep -q broker_app; then
-    docker compose exec broker_app php bin/console lexik:jwt:generate-keypair --skip-if-exists
+# Load Symfony fixtures if any exist
+if docker compose exec -T app php bin/console doctrine:fixtures:load --no-interaction; then
+    echo "📦 Loaded Symfony fixtures."
 else
-    echo "❌ broker_app container is not running. Attempting to start the container..."
-    docker compose up -d broker_app
-
-    # Run fixture code
-    if docker ps | grep -q broker_app; then
-        docker compose exec broker_app bash -c "
-            if [ ! -f /var/task/fixtures_loaded ]; then
-                php bin/console doctrine:fixtures:load --no-interaction && \
-                touch /var/task/fixtures_loaded
-            fi && \
-            php-fpm
-        "
-    fi
-    sleep 5  # Give some time for the container to start
-
-
-    if docker ps | grep -q broker_app; then
-        echo "✅ broker_app container started successfully. Rerunning the JWT key generation..."
-        docker compose exec broker_app php bin/console lexik:jwt:generate-keypair --skip-if-exists
-    # else
-    #     echo "❌ Failed to start broker_app container. Please check the container logs and try again."
-    #     exit 1
-    fi
+    echo "⚠️ No Symfony fixtures found or failed to load."
 fi
 
-# Ensure Cache & Log Directories Exist
-echo "🛠️ Ensuring cache & log directories exist..."
-if ! docker compose exec broker_app bash -c "[ -d var/cache ] && [ -d var/log ]"; then
-    docker compose exec broker_app bash -c "
-        mkdir -p var/cache var/log && \
-        chown -R www-data:www-data var/cache var/log && \
-        chmod -R 777 var/cache var/log
-    "
+docker exec -it broker_app bash apt-get update && apt-get install -y ca-certificates
+
+# Load SQL queries from init.sql if it exists
+if [ -f "$APP_DIR/init/init.sql" ]; then
+    echo "📄 Loading SQL queries from init.sql..."
+    docker compose exec -T database mariadb -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "init/init.sql"
+    echo "✅ SQL queries from init.sql loaded."
 else
-    echo "✅ Cache & log directories already exist."
+    echo "⚠️ init.sql file not found."
 fi
 
-# Clear and Warm Up Cache Properly
-echo "🗑️ Clearing cache safely..."
-docker compose exec broker_app bash -c "
-    php bin/console cache:clear --no-warmup && \
-    php bin/console cache:warmup
-"
-
-# Restart Symfony Server (Ensure Old Instances Are Stopped)
-docker compose restart broker_app
-symfony server:stop -all
-symfony server:start
-
-echo "🎉 Demo environment is ready! You can access the application."
+echo "Setup complete! Visit https://$DOMAIN in your browser."
+echo "phpMyAdmin is accessible at https://phpmyadmin.$DOMAIN"
