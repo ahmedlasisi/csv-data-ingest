@@ -14,16 +14,10 @@ echo "Stopping and removing Docker containers, networks, and volumes for project
 # Stop and remove Docker containers, networks, and volumes
 docker compose down -v
 
-# Delete the data in the docker/db/data directory
-if [ -d "$APP_DIR/config/jwt/private.pem" ]; then
-    echo "Deleting data in $APP_DIR/config/jwt/private.pem file..."
-    rm -rf "$APP_DIR/config/jwt/private.pem"
-fi
-# Delete the data in the docker/db/data directory
-if [ -d "$APP_DIR/config/jwt/public.pem" ]; then
-    echo "Deleting data in $APP_DIR/config/jwt/public.pem file..."
-    rm -rf "$APP_DIR/config/jwt/public.pem"
-fi
+# Delete the data in the app/config/jwt/ directory
+echo "Deleting data in $APP_DIR/config/jwt/ file..."
+rm -rf "$APP_DIR/app/config/jwt"
+
 
 # Delete the data in the docker/db/data directory
 if [ -d "$APP_DIR/docker/db/data" ]; then
