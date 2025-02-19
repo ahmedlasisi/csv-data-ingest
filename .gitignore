@@ -16,17 +16,17 @@
 ###< symfony/framework-bundle ###
 
 ###> symfony/phpunit-bridge ###
-.phpunit.result.cache
-/phpunit.xml
+/app/.phpunit.result.cache
+/app/phpunit.xml
 ###< symfony/phpunit-bridge ###
 
 ###> phpunit/phpunit ###
-/phpunit.xml
+/app/phpunit.xml
 .phpunit.result.cache
 ###< phpunit/phpunit ###
 
 ###> lexik/jwt-authentication-bundle ###
-/config/jwt/*.pem
+/app/config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###
 .docker/.DS_Store
 .DS_Store
@@ -41,4 +41,4 @@ fixtures_loaded
 material/
 /docker/
 certs/
-snippets/fastcgi-php.conf
+/app/config/jwt/*
