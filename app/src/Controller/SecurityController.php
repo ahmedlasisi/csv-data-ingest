@@ -34,7 +34,7 @@ class SecurityController extends AbstractController
     /**
      * Registers a new user securely.
      */
-    #[Route('/api/register', methods: ['POST'], name: 'api_login')]
+    #[Route('/register', methods: ['POST'], name: 'api_register')]
     public function register(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
