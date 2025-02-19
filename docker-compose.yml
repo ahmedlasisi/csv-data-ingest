@@ -7,7 +7,7 @@ services:
       - .:/var/www/html
     working_dir: /var/www/html/app
     environment:
-      APP_ENV: 
+      APP_ENV: ${APP_ENV}
       DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?serverVersion=${DB_VERSION}&charset=utf8mb4
       HANDLER: public/index.php
       DOCUMENT_ROOT: public
@@ -55,6 +55,11 @@ services:
     image: redis:alpine
     container_name: ${PROJECT_NAME}_redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
     networks:
       - connecting_network
 
@@ -76,3 +81,4 @@ networks:
 
 volumes:
   mariadb_data:
+  redis_data:
