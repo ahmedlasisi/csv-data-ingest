@@ -30,5 +30,20 @@ services:
     arguments:
       $useCache: true
       $defaultTtl: "%cache_lifetime%"
+
+  # # Console Logger (for CLI)
+  # App\Logger\ConsolePolicyImportLogger:
+  #   autowire: true
+  #   autoconfigure: true
+  #   public: true
+
+  # # Flash Logger (for Web)
+  # App\Logger\FlashPolicyImportLogger:
+  #   autowire: true
+  #   autoconfigure: true
+  #   public: true
+
+  # # Default Logger (Alias - Choose based on Context)
+  # App\Interface\PolicyImportLoggerInterface: '@App\Logger\ConsolePolicyImportLogger'
 # add more service definitions when explicit configuration is needed
 # please note that last definitions always *replace* previous ones
