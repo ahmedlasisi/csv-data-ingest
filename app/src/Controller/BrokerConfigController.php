@@ -122,9 +122,18 @@ class BrokerConfigController extends AbstractController
         
         $response = $this->policyImportService->handleFileUpload($file, $broker);
 
-        if ($format === 'admin') {
+        if ($format === 'admin' &&  json_decode($response->getContent(), true)['status'] === "success") {
             $this->addFlash('success', 'CSV file uploaded successfully');
         }
+        if ($format === 'admin' &&  json_decode($response->getContent(), true)['status'] !== "success") {
+            $this->addFlash('error', json_decode($response->getContent(), true)['message']);
+        }
+
+        // $response = $this->clearBrokerDataByType($uuid, 'policies', $format);
+        // if ($format === 'admin' && $response->getStatusCode() === JsonResponse::HTTP_OK) {
+        //     return $this->handleSuccess($format, json_decode($response->getContent(), true)['message']);
+        // }
+        // return $response;
 
         return $response;
     }
