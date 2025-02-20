@@ -11,12 +11,14 @@ use App\Entity\BrokerConfig;
 use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\TestCase;
 use Doctrine\ORM\EntityRepository;
+use App\Service\AggregationService;
 use App\Service\PolicyImportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\MockObject\MockObject;
 use App\Interface\PolicyImportLoggerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile; // Add this import
 
@@ -44,6 +46,7 @@ class PolicyImportServiceTest extends TestCase
 
     /** @var PolicyImportService */
     private $service;
+    private MessageBusInterface $bus;
 
     protected function setUp(): void
     {
@@ -52,6 +55,7 @@ class PolicyImportServiceTest extends TestCase
         $this->importLogger = $this->createMock(PolicyImportLoggerInterface::class);
         $this->managerRegistry = $this->createMock(ManagerRegistry::class);
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $this->bus = $this->createMock(MessageBusInterface::class);
 
         // Ensure that resetting the entity manager returns our mock entity manager.
         $this->managerRegistry
@@ -67,7 +71,8 @@ class PolicyImportServiceTest extends TestCase
             $this->logger,
             $this->importLogger,
             $this->managerRegistry,
-            $this->urlGenerator
+            $this->urlGenerator,
+            $this->bus
         );
     
         // Override the data directory to a temporary directory so we can create temp files.
@@ -441,5 +446,83 @@ class PolicyImportServiceTest extends TestCase
         $result = $method->invoke($this->service, $filePath, $this->broker);
 
         $this->assertSame($errors, $result);
+    }
+
+    public function testProcessBrokerConfigFileNotFound(): void
+    {
+        $brokerConfig = $this->createMock(BrokerConfig::class);
+        $brokerConfig->method('getFileName')->willReturn('nonexistent.csv');
+        $brokerConfig->method('getBroker')->willReturn($this->broker);
+
+        $this->importLogger->expects($this->once())
+            ->method('warning')
+            ->with($this->stringContains('File not found'));
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('processBrokerConfig');
+        $method->setAccessible(true);
+
+        $method->invoke($this->service, $brokerConfig);
+    }
+
+    public function testEnsureBrokerIsManaged(): void
+    {
+        $this->entityManager->expects($this->once())
+            ->method('find')
+            ->with(Broker::class, $this->broker->getId())
+            ->willReturn($this->broker);
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('ensureBrokerIsManaged');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->service, $this->broker);
+
+        $this->assertSame($this->broker, $result);
+    }
+
+    public function testResetEntityManager(): void
+    {
+        $this->entityManager->expects($this->once())
+            ->method('isOpen')
+            ->willReturn(false);
+
+        $this->managerRegistry->expects($this->once())
+            ->method('getManager')
+            ->willReturn($this->entityManager);
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('resetEntityManager');
+        $method->setAccessible(true);
+
+        $method->invoke($this->service);
+    }
+
+    public function testValidateMapping(): void
+    {
+        $fileMapping = ['PolicyNumber' => 'PolicyNumber', 'InsuredAmount' => 'InsuredAmount'];
+        $csvHeaders = ['PolicyNumber', 'InsuredAmount'];
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('validateMapping');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->service, $fileMapping, $csvHeaders);
+
+        $this->assertTrue($result);
+    }
+
+    public function testValidateMappingInvalid(): void
+    {
+        $fileMapping = ['PolicyNumber' => 'PolicyNumber', 'InsuredAmount' => 'InsuredAmount'];
+        $csvHeaders = ['PolicyNumber'];
+
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('validateMapping');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->service, $fileMapping, $csvHeaders);
+
+        $this->assertFalse($result);
     }
 }
