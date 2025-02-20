@@ -142,6 +142,8 @@ else
     echo "Directory $APP_DIR/app/public does not exist."
 fi
 
+docker compose exec -T app composer install
+
 
 # Ensure database is ready
 echo "⏳ Waiting for MariaDB to be ready..."
