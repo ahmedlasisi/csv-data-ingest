@@ -12,15 +12,18 @@ class ClearDataService
     private EntityManagerInterface $entityManager;
     private LoggerInterface $logger;
     private CacheHelper $cacheHelper;
+    private AggregationService $aggregationService;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
-        CacheHelper $cacheHelper
+        CacheHelper $cacheHelper,
+        AggregationService $aggregationService
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->cacheHelper = $cacheHelper;
+        $this->aggregationService = $aggregationService;
     }
 
     public function clearBrokerData(Broker $broker): void
@@ -39,6 +42,7 @@ class ClearDataService
 
             $this->entityManager->flush();
             $this->entityManager->commit();
+            $this->aggregationService->triggerBrokerCacheRefresh($broker);
 
             $this->logger->info("Cleared all policy-related data for broker: " . $broker->getId());
         } catch (\Throwable $e) {
@@ -62,6 +66,7 @@ class ClearDataService
             $this->cacheHelper->invalidate("aggregation_by_broker_{$broker->getUuid()}");
 
             $this->entityManager->commit();
+            $this->aggregationService->triggerBrokerCacheRefresh($broker);
             $this->logger->info("Cleared policies data for broker: " . $broker->getName());
         } catch (\Exception $e) {
             $this->entityManager->rollback();
