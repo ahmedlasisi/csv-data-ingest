@@ -14,6 +14,7 @@ use App\Entity\BrokerConfig;
 use Psr\Log\LoggerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use App\Interface\PolicyImportLoggerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -23,6 +24,8 @@ class PolicyImportService
     private EntityManagerInterface $entityManager;
     private LoggerInterface $logger;
     private string $dataDirectory;
+    private PolicyImportLoggerInterface $importLogger;
+
     private ManagerRegistry $managerRegistry;
 
     /**
@@ -43,55 +46,64 @@ class PolicyImportService
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
+        PolicyImportLoggerInterface $importLogger,
         ManagerRegistry $managerRegistry
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
+        $this->importLogger = $importLogger;
         $this->managerRegistry = $managerRegistry;
         $this->dataDirectory = __DIR__ . '/../../var/data';
     }
 
-    public function importPolicies($io): void
+    public function setLogger(PolicyImportLoggerInterface $importLogger): void
+    {
+        $this->importLogger = $importLogger;
+    }
+
+    public function importPolicies(): void
     {
         $brokerConfigs = $this->entityManager->getRepository(BrokerConfig::class)->findAll();
 
         if (empty($brokerConfigs)) {
-            $io->warning("No broker configurations found in database.");
+            $this->importLogger->warning("No broker configurations found in database.");
             return;
         }
 
         foreach ($brokerConfigs as $config) {
-            $this->processBrokerConfig($config, $io);
+            $this->processBrokerConfig($config);
         }
     }
 
-    private function processBrokerConfig(BrokerConfig $config, SymfonyStyle $io): void
+    private function processBrokerConfig(BrokerConfig $config): void
     {
-        $filePath = $this->dataDirectory . '/' . $config->getFileName();
+        $filePath = realpath($this->dataDirectory . '/' . $config->getFileName());
+      
         $broker = $config->getBroker();
 
         if (!file_exists($filePath)) {
-            $io->warning("File not found: $filePath");
-            $this->logger->warning("File not found: $filePath");
+            $this->importLogger->warning("File not found: $filePath");
             return;
         }
 
-        $this->processFile($filePath, $broker, $io);
+        $this->processFile($filePath, $broker);
     }
 
-    public function handleFileUpload(UploadedFile $file, Broker $broker): array
+    public function handleFileUpload(UploadedFile $file, Broker $broker): JsonResponse
     {
-        $filePath = $file->getPathname(); // Temporary location of uploaded file
-        return $this->processFile($filePath, $broker);
-    }
+        $filePath = $file->getPathname(); // Temporary location of the uploaded file
+        $result = $this->processFile($filePath, $broker);
 
-    private function processFile(string $filePath, Broker $broker, ?SymfonyStyle $io = null): ?array
-    {
-        if ($io) {
-            $io->section("Processing file: " . basename($filePath));
-        } else {
-            $this->logger->info("Processing file: " . basename($filePath));
+        if (empty($result)) {
+            return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
         }
+
+        return new JsonResponse(['status' => 'error', 'message' => 'Failed to process file']);
+    }
+
+    private function processFile(string $filePath, Broker $broker): ?array
+    {
+        $this->importLogger->info("Processing file: " . basename($filePath));
 
         $config = $broker->getConfig();
         $errors = [];
@@ -100,10 +112,9 @@ class PolicyImportService
 
         if (!file_exists($filePath)) {
             $this->logger->error("File does not exist: $filePath");
-            if ($io) {
-                $io->error("File does not exist: " . basename($filePath));
-            }
-            return $io ? null : ["File does not exist: $filePath"];
+            $this->importLogger->error("File does not exist: " . basename($filePath));
+
+            return  ["File does not exist: $filePath"];
         }
 
         try {
@@ -120,21 +131,17 @@ class PolicyImportService
 
             $this->logger->info("Valid JSON mapping for file: " . $config->getFileName());
             $this->logger->info("Starting to process records for file: $filePath");
-            $this->processRecords($csv->getRecords(), $fileMapping, $broker, $io);
+            $this->processRecords($csv->getRecords(), $fileMapping, $broker);
             
             $this->logger->info("Finished processing records for file: $filePath");
         } catch (\Throwable $e) {
             $this->logger->error("Exception caught during file processing: " . $e->getMessage());
-            $this->handleProcessingError($e, $filePath, $io, $errors);
+            $this->logAndReturnProcessingError($e, $filePath);
         }
 
-        if ($io) {
-            $io->success("Finished processing " . basename($filePath));
-        } else {
-            $this->logger->info("Finished processing " . basename($filePath));
-        }
+        $this->importLogger->success("Finished processing " . basename($filePath));
 
-        return $io ? null : $errors;
+        return $errors;
     }
     
     private function readCsvFile(string $filePath): Reader
@@ -144,7 +151,7 @@ class PolicyImportService
         return $csv;
     }
 
-    private function processRecords(iterable $records, array $fileMapping, Broker $broker, ?SymfonyStyle $io = null): void
+    private function processRecords(iterable $records, array $fileMapping, Broker $broker): void
     {
         $batchSize = 50;
         $i = 0;
@@ -198,14 +205,11 @@ class PolicyImportService
         $this->clearCaches();
     }
 
-    private function handleProcessingError(\Throwable $e, string $filePath, ?SymfonyStyle $io, array &$errors): void
+    private function logAndReturnProcessingError(\Throwable $e, string $filePath): array
     {
         $this->logger->error("Failed processing {$filePath}: " . $e->getMessage());
-        $errors[] = "Error: " . $e->getMessage();
-
-        if ($io) {
-            $io->error("Error: " . $e->getMessage());
-        }
+        $this->importLogger->error("Error: " . $e->getMessage());
+        return ["Error" => $e->getMessage()];
     }
     
     private function transformCsvRecord(array $record, array $fileMapping): array
