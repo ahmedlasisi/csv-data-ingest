@@ -50,14 +50,14 @@ class PolicyImportService
         LoggerInterface $logger,
         PolicyImportLoggerInterface $importLogger,
         ManagerRegistry $managerRegistry,
-        UrlGeneratorInterface $urlGenerator // Add UrlGeneratorInterface to the constructor
+        UrlGeneratorInterface $urlGenerator
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->importLogger = $importLogger;
         $this->managerRegistry = $managerRegistry;
         $this->dataDirectory = __DIR__ . '/../../var/data';
-        $this->urlGenerator = $urlGenerator; // Initialize the UrlGeneratorInterface
+        $this->urlGenerator = $urlGenerator;
     }
 
     public function setLogger(PolicyImportLoggerInterface $importLogger): void
