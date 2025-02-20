@@ -35,6 +35,17 @@ class DashboardController extends AbstractController
 
         // Search Broker and Fetch Related Policies
         $brokerName = $request->query->get('broker');
+        $brokerUuid = $request->query->get('uuid');
+
+        if ($brokerUuid) {
+            $broker = $this->brokerRepository->findOneBy(['uuid' => $brokerUuid]);
+            if ($broker) {
+                $brokerName = $broker->getName();
+            } else {
+                $this->addFlash('error', "Broker with UUID '{$brokerUuid}' does not exist.");
+                return $this->redirectToRoute('admin_dashboard');
+            }
+        }
         $brokerPolicies = [];
        
         if ($brokerName) {
