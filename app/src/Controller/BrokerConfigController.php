@@ -20,38 +20,20 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpFoundation\Exception\BadRequestException;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[Route('/{format<admin|api>}/brokers')]
 #[IsGranted('ROLE_ADMIN')]
 class BrokerConfigController extends AbstractController
 {
-    private EntityManagerInterface $entityManager;
-    private BrokerRepository $brokerRepository;
-    private BrokerConfigRepository $brokerConfigRepository;
-    private PolicyImportService $policyImportService;
-    private ClearDataService $clearDataService;
-    private CacheHelper $cacheHelper;
-    private ValidatorInterface $validator;
-
     public function __construct(
-        EntityManagerInterface $entityManager,
-        BrokerRepository $brokerRepository,
-        BrokerConfigRepository $brokerConfigRepository,
-        PolicyImportService $policyImportService,
-        ClearDataService $clearDataService,
-        CacheHelper $cacheHelper,
-        ValidatorInterface $validator
+        private EntityManagerInterface $entityManager,
+        private BrokerRepository $brokerRepository,
+        private BrokerConfigRepository $brokerConfigRepository,
+        private PolicyImportService $policyImportService,
+        private ClearDataService $clearDataService,
+        private CacheHelper $cacheHelper,
+        private ValidatorInterface $validator
     ) {
-        $this->entityManager = $entityManager;
-        $this->brokerRepository = $brokerRepository;
-        $this->brokerConfigRepository = $brokerConfigRepository;
-        $this->policyImportService = $policyImportService;
-        $this->clearDataService = $clearDataService;
-        $this->cacheHelper = $cacheHelper;
-        $this->validator = $validator;
     }
 
     #[Route('/config/list', name: 'broker_config_index', methods: ['GET'])]
@@ -59,18 +41,9 @@ class BrokerConfigController extends AbstractController
     {
         $brokers = $this->brokerRepository->findAll();
 
-        if ($format === 'api') {
-            return $this->json(array_map(fn (Broker $broker) => [
-                'uuid' => $broker->getUuid(),
-                'broker_name' => $broker->getName(),
-                'file_name' => $broker->getConfig()->getFileName(),
-                'file_mapping' => $broker->getConfig()->getFileMapping(),
-            ], $brokers));
-        }
-
-        return $this->render('broker_config/index.html.twig', [
-            'brokers' => $brokers
-        ]);
+        return $format === 'api'
+            ? $this->json(array_map([$this, 'serializeBroker'], $brokers))
+            : $this->render('broker_config/index.html.twig', ['brokers' => $brokers]);
     }
 
     #[Route('/config/new', name: 'broker_config_create', methods: ['GET', 'POST', 'PUT'])]
@@ -128,12 +101,6 @@ class BrokerConfigController extends AbstractController
         if ($format === 'admin' &&  json_decode($response->getContent(), true)['status'] !== "success") {
             $this->addFlash('error', json_decode($response->getContent(), true)['message']);
         }
-
-        // $response = $this->clearBrokerDataByType($uuid, 'policies', $format);
-        // if ($format === 'admin' && $response->getStatusCode() === JsonResponse::HTTP_OK) {
-        //     return $this->handleSuccess($format, json_decode($response->getContent(), true)['message']);
-        // }
-        // return $response;
 
         return $response;
     }
@@ -322,5 +289,15 @@ class BrokerConfigController extends AbstractController
 
         $this->addFlash('success', $message);
         return $this->redirectToRoute('broker_config_index', ['format' => 'admin']);
+    }
+
+    private function serializeBroker(Broker $broker): array
+    {
+        return [
+            'uuid' => $broker->getUuid(),
+            'broker_name' => $broker->getName(),
+            'file_name' => $broker->getConfig()->getFileName(),
+            'file_mapping' => $broker->getConfig()->getFileMapping(),
+        ];
     }
 }
