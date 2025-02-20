@@ -1,6 +1,6 @@
 # 🚀 Broker Data Ingestion & Aggregation System
 
-This project is a multi-tenant **broker data ingestion & analytics system** built with **Symfony 7**, **MariaDB**, **Redis**, and **Docker**. It supports **JWT security**, **multi-source policy imports**, **Background CLI job procesing updates** with a **real-time WebSockets updates** which can be made added in future. It include A Postman API documentation and Collection which is published and available for testing at (https://documenter.getpostman.com/view/11654343/2sAYXCiyAr).
+This project is a multi-tenant **broker data ingestion & analytics system** built with **Symfony 7**, **MariaDB**, **Redis**, and **Docker**. It supports **JWT security**, **multi-source policy imports**, and **Background CLI data procesing updates**. It include A Postman API documentation and Collection which is published and available for testing at (https://documenter.getpostman.com/view/11654343/2sAYXCiyAr).
 
 ## **🔹 Features**
 
@@ -110,9 +110,9 @@ If using Visual Studio Code and you see message like “Visual Studio Code” wo
 
 **3️⃣ Access the Application**
 
-App Admin Dashboard: https://phpmyadmin.broker
+App Admin Dashboard: https://phpmyadmin.broker.test
 
-API BaseEndpoint: https://phpmyadmin.broker/api/
+API BaseEndpoint: https://phpmyadmin.broker.test/api/
 
 Database (PhpMyAdmin - Optional): https://phpmyadmin.broker.test
 
