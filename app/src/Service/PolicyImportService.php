@@ -12,10 +12,12 @@ use App\Entity\Financials;
 use App\Entity\BrokerClient;
 use App\Entity\BrokerConfig;
 use Psr\Log\LoggerInterface;
+use App\Message\CacheRefreshMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use App\Interface\PolicyImportLoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -43,7 +45,7 @@ class PolicyImportService
      */
     private array $entityCache = [];
     private bool $useCache = true;
-    private AggregationService $aggregationService;
+    private MessageBusInterface $bus;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -51,7 +53,7 @@ class PolicyImportService
         PolicyImportLoggerInterface $importLogger,
         ManagerRegistry $managerRegistry,
         UrlGeneratorInterface $urlGenerator,
-        AggregationService $aggregationService
+        MessageBusInterface $bus
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
@@ -59,7 +61,7 @@ class PolicyImportService
         $this->managerRegistry = $managerRegistry;
         $this->dataDirectory = __DIR__ . '/../../var/data';
         $this->urlGenerator = $urlGenerator;
-        $this->aggregationService = $aggregationService;
+        $this->bus = $bus;
     }
 
     public function setLogger(PolicyImportLoggerInterface $importLogger): void
@@ -154,8 +156,11 @@ class PolicyImportService
             $this->importLogger->error("Exception caught during file processing: " . $e->getMessage());
             $this->logAndReturnProcessingError($e, $filePath);
         }
-        $this->aggregationService->triggerCacheRefresh();
-
+        $this->bus->dispatch(new CacheRefreshMessage('aggregation_summary'));
+        $this->bus->dispatch(new CacheRefreshMessage('aggregation_by_broker'));
+ 
+        $this->bus->dispatch(new CacheRefreshMessage('aggregation_broker_' . $broker->getUuid()));
+        
         $this->importLogger->success("Finished processing " . basename($filePath));
 
         return $errors;
