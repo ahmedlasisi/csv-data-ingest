@@ -23,9 +23,10 @@ class PolicyRepository extends ServiceEntityRepository
 
     public function findDataSummary(): array
     {
-        return $this->cacheHelper->get('policy_summary', function () {
-            return $this->buildPolicyQuery(onlyActive: true)->getQuery()->getResult();
-        }, self::CACHE_TTL_SUMMARY);
+        // return $this->cacheHelper->get('policy_summary', function () {
+        //     return $this->buildPolicyQuery(onlyActive: true)->getQuery()->getResult();
+        // }, self::CACHE_TTL_SUMMARY);
+        return $this->buildPolicyQuery(onlyActive: true)->getQuery()->getResult();
     }
 
     public function findBrokerAggregation(): array
