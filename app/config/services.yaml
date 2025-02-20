@@ -12,7 +12,8 @@ services:
   _defaults:
     autowire: true # Automatically injects dependencies in your services.
     autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
-
+    bind:
+      $entityManager: "@doctrine.orm.entity_manager"
   # makes classes in src/ available to be used as services
   # this creates a service per class whose id is the fully-qualified class name
   App\:
@@ -21,15 +22,24 @@ services:
       - "../src/DependencyInjection/"
       - "../src/Entity/"
       - "../src/Kernel.php"
+      - "../src/Tests/"
 
   App\EventListener\ExceptionListener:
     tags:
       - { name: kernel.event_listener, event: kernel.exception }
 
+  App\Logger\FlashPolicyImportLogger:
+    arguments:
+      $flashBag: "@session.flash_bag"
+
   App\Service\CacheHelper:
     arguments:
       $useCache: true
       $defaultTtl: "%cache_lifetime%"
+
+  App\Controller\:
+    resource: "../src/Controller"
+    tags: ["controller.service_arguments"]
 
   # # Console Logger (for CLI)
   # App\Logger\ConsolePolicyImportLogger:
@@ -43,7 +53,7 @@ services:
   #   autoconfigure: true
   #   public: true
 
-  # # Default Logger (Alias - Choose based on Context)
-  # App\Interface\PolicyImportLoggerInterface: '@App\Logger\ConsolePolicyImportLogger'
+  # Default Logger (Alias - Choose based on Context)
+  App\Interface\PolicyImportLoggerInterface: '@App\Logger\ConsolePolicyImportLogger'
 # add more service definitions when explicit configuration is needed
 # please note that last definitions always *replace* previous ones
