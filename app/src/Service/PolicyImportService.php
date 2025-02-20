@@ -97,46 +97,22 @@ class PolicyImportService
         $this->processFile($filePath, $broker);
     }
 
-    // public function handleFileUpload(UploadedFile $file, Broker $broker): JsonResponse
-    // {
-    //     $filePath = $file->getPathname(); // Temporary location of the uploaded file
-    //     if ($file->getClientOriginalName() === $broker->getConfig()->getFileName()) {
-    //         $result = $this->processFile($filePath, $broker);
-    //     } else {
-    //         $result = ["File name does not match the configured file name"];
-    //     }
-
-    //     if (empty($result)) {
-    //         // return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
-    //         return new JsonResponse([
-    //             'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
-    //             'status' => 'success',
-    //             'message' => 'CSV file uploaded successfully.'
-    //         ]);
-    //     }
-
-    //     return new JsonResponse([
-    //         'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
-    //         'status' => 'error',
-    //         'message' => $result
-    //     ]);
-    // }
-
     public function handleFileUpload(UploadedFile $file, Broker $broker): JsonResponse
     {
         $filePath = $file->getPathname(); // Temporary location of the uploaded file
+        $brokerName = $broker->getName();
         if ($file->getClientOriginalName() === $broker->getConfig()->getFileName()) {
             $result = $this->processFile($filePath, $broker);
         } else {
-            $result = "File name does not match the configured file name";
+            $result = "Upload failed for {$brokerName}: the submitted file name does not match the configured file name.";
         }
 
         if (empty($result)) {
             // return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
             return new JsonResponse([
-                'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
+                'redirect' => $this->generateUrl('admin_dashboard', ['uuid' => $broker->getUuid()]),
                 'status' => 'success',
-                'message' => 'CSV file uploaded successfully.'
+                'message' => "{$brokerName} CSV file uploaded successfully."
             ]);
         }
 
