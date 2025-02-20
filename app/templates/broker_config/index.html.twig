@@ -122,11 +122,15 @@
       })
       .then(response => response.json())
       .then(data => {
-          let messagesDiv = document.getElementById('messages');
-          let message = document.createElement('div');
-          message.className = data.status;
-          message.innerText = data.message;
-          messagesDiv.appendChild(message);
+          if (data.redirect) {
+              window.location.href = data.redirect;
+          } else {
+              let messagesDiv = document.getElementById('messages');
+              let message = document.createElement('div');
+              message.className = data.status;
+              message.innerText = data.message;
+              messagesDiv.appendChild(message);
+          }
       })
       .catch(error => {
           console.error('Error:', error);
