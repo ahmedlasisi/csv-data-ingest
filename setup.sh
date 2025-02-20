@@ -6,7 +6,7 @@ echo "🚀 Setting up project environment..."
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 PROJECT_NAME="broker"
-HTTP_PORT=${2:-8080}  # Default HTTP port to 80 if not provided
+HTTP_PORT=${2:-8080}  # Default HTTP port to 8080 if not provided
 HTTPS_PORT=${3:-443}  # Default HTTPS port to 443 if not provided
 DB_PORT=3306
 DB_PORT_WEB=3806
@@ -60,7 +60,6 @@ mkdir -p app && cd app
 echo "Checking .env file..."
 echo "📄 Creating .env from .env.docker..."
 cp "$APP_DIR/.env.docker" "$APP_DIR/app/.env"
-
 
 APP_SECRET=$(openssl rand -hex 32)
 DB_PASSWORD=$(openssl rand -hex 20)
@@ -144,7 +143,6 @@ fi
 
 docker compose exec -T app composer install
 
-
 # Ensure database is ready
 echo "⏳ Waiting for MariaDB to be ready..."
 timeout=100
@@ -176,14 +174,11 @@ else
     echo "⚠️ No Symfony fixtures found or failed to load."
 fi
 
-docker exec -it broker_app bash apt-get update && apt-get install -y ca-certificates
-
 # Load SQL queries from init.sql if it exists
 if [ -f "$APP_DIR/init/init.sql" ]; then
     echo "📄 Loading SQL queries from init.sql..."
     docker compose exec -T database mariadb -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "init/init.sql"
     echo "✅ SQL queries from init.sql loaded."
-
 fi
 
 echo "Setup complete! Visit https://$DOMAIN in your browser."
