@@ -50,12 +50,13 @@
                 Edit
               </a>
               <!-- CSV Upload Form -->
-              <form action="{{ path('broker_upload_csv', {uuid: broker.uuid, 'format': 'admin'}) }}" method="POST" enctype="multipart/form-data" class="d-inline">
+              <form id="upload-form" action="{{ path('broker_upload_csv', {uuid: broker.uuid, 'format': 'admin'}) }}" method="POST" enctype="multipart/form-data" class="d-inline">
                 <input type="file" name="csv_file" accept=".csv" required class="form-control d-inline-block w-auto">
                   <button type="submit" class="btn btn-primary btn-sm">
                     Upload CSV
                   </button>
                 </form>
+                <div id="messages"></div>
 
                 <!-- Clear Broker Data Button -->
 
@@ -107,6 +108,28 @@
                 }
             });
           }
+      });
+  });
+ 
+  document.getElementById('upload-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      let formData = new FormData(this);
+
+      fetch(this.action, {
+          method: 'POST',
+          body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+          let messagesDiv = document.getElementById('messages');
+          let message = document.createElement('div');
+          message.className = data.status;
+          message.innerText = data.message;
+          messagesDiv.appendChild(message);
+      })
+      .catch(error => {
+          console.error('Error:', error);
       });
   });
 </script>
