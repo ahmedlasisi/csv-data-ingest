@@ -97,10 +97,39 @@ class PolicyImportService
         $this->processFile($filePath, $broker);
     }
 
+    // public function handleFileUpload(UploadedFile $file, Broker $broker): JsonResponse
+    // {
+    //     $filePath = $file->getPathname(); // Temporary location of the uploaded file
+    //     if ($file->getClientOriginalName() === $broker->getConfig()->getFileName()) {
+    //         $result = $this->processFile($filePath, $broker);
+    //     } else {
+    //         $result = ["File name does not match the configured file name"];
+    //     }
+
+    //     if (empty($result)) {
+    //         // return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
+    //         return new JsonResponse([
+    //             'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
+    //             'status' => 'success',
+    //             'message' => 'CSV file uploaded successfully.'
+    //         ]);
+    //     }
+
+    //     return new JsonResponse([
+    //         'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
+    //         'status' => 'error',
+    //         'message' => $result
+    //     ]);
+    // }
+
     public function handleFileUpload(UploadedFile $file, Broker $broker): JsonResponse
     {
         $filePath = $file->getPathname(); // Temporary location of the uploaded file
-        $result = $this->processFile($filePath, $broker);
+        if ($file->getClientOriginalName() === $broker->getConfig()->getFileName()) {
+            $result = $this->processFile($filePath, $broker);
+        } else {
+            $result = "File name does not match the configured file name";
+        }
 
         if (empty($result)) {
             // return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
@@ -111,7 +140,11 @@ class PolicyImportService
             ]);
         }
 
-        return new JsonResponse(['status' => 'error', 'message' => $result]);
+        return new JsonResponse([
+            'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
+            'status' => 'error',
+            'message' => $result
+        ]);
     }
 
     private function generateUrl(string $route, array $parameters = []): string
