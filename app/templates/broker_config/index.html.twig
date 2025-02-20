@@ -70,38 +70,21 @@
                 </a>
 
                 <!-- Delete Broker Button -->
-                <button class="btn btn-danger btn-sm delete-broker-btn" data-url="{{ path('broker_config_delete', {'uuid': broker.uuid, 'format': 'admin'}) }}">
-                  Delete Broker
-                </button>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+                <form action="{{ path('broker_config_delete', {'uuid': broker.uuid, 'format': 'admin'}) }}" method="POST" class="d-inline">
+                  <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ broker.uuid) }}">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">
+                      Delete Broker
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Handle Clear Policies and Clear All Data
-      document.querySelectorAll('.clear-policies-btn, .clear-all-btn').forEach(button => {
-        button.addEventListener('click', function(event) {
-          event.preventDefault();
-          let confirmationMessage = this.classList.contains('clear-all-btn') 
-            ? "Are you sure you want to delete ALL broker data?" 
-            : "Are you sure you want to clear policies?";
-          
-          if (confirm(confirmationMessage)) {
-            fetch(this.dataset.url, { method: 'DELETE' })
-              .then(response => response.json())
-              .then(data => {
-                if (data.redirect) {
-                  window.location.href = data.redirect; // Redirect for flash messages
-                }
-              })
-              .catch(error => console.error('Error:', error));
-          }
-        });
-      });
+      <script>
+   
 
       // Handle CSV Upload per Form
       document.querySelectorAll('.upload-form').forEach(form => {
@@ -128,23 +111,39 @@
       });
 
       // Handle Delete Broker
-      document.querySelectorAll('.delete-broker-btn').forEach(button => {
-        button.addEventListener('click', function(event) {
-          event.preventDefault();
-          if (confirm("Are you sure you want to delete this broker?")) {
-            fetch(this.dataset.url, { method: 'POST' }) // Ensure backend responds with JSON
-              .then(response => response.json())
-              .then(data => {
-                if (data.redirect) {
-                  window.location.href = data.redirect; // Redirect after delete
-                }
-              })
-              .catch(error => console.error('Error:', error));
-          }
+      
+
+  </script>
+
+      <script>
+    document.querySelectorAll('.clear-policies-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm("Are you sure you want to clear policies?")) {
+                fetch(this.dataset.url, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                  if (data.redirect) {
+                      window.location.href = data.redirect;
+                  }
+              });
+            }
         });
-      });
+    });
+  
+    document.querySelectorAll('.clear-all-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm("Are you sure you want to delete ALL broker data?")) {
+                fetch(this.dataset.url, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                  if (data.redirect) {
+                      window.location.href = data.redirect;
+                  }
+              });
+            }
+        });
     });
   </script>
 
-  {% endblock %}
-  
+    {% endblock %}
+    
