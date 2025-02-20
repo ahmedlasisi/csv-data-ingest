@@ -119,7 +119,7 @@ class BrokerConfigController extends AbstractController
         if (!$file || !$broker) {
             return $this->handleError($format, 'Invalid file or broker.');
         }
-
+        
         $response = $this->policyImportService->handleFileUpload($file, $broker);
 
         if ($format === 'admin') {
@@ -132,21 +132,13 @@ class BrokerConfigController extends AbstractController
     #[Route('/{uuid}/clear-policies', name: 'api_clear_broker_policy_data', methods: ['DELETE'])]
     public function clearBrokerPolicies(string $uuid, string $format): JsonResponse
     {
-        $response = $this->clearBrokerDataByType($uuid, 'policies', $format);
-        if ($format === 'admin' && $response->getStatusCode() === JsonResponse::HTTP_OK) {
-            return $this->handleSuccess($format, json_decode($response->getContent(), true)['message']);
-        }
-        return $response;
+        return $this->clearBrokerDataByType($uuid, 'policies', $format);
     }
 
     #[Route('/{uuid}/clear-all', name: 'api_clear_all_broker_data', methods: ['DELETE'])]
     public function clearBrokerData(string $uuid, string $format): JsonResponse
     {
-        $response = $this->clearBrokerDataByType($uuid, 'all', $format);
-        if ($format === 'admin' && $response->getStatusCode() === JsonResponse::HTTP_OK) {
-            return $this->handleSuccess($format, json_decode($response->getContent(), true)['message']);
-        }
-        return $response;
+        return $this->clearBrokerDataByType($uuid, 'all', $format);
     }
 
     private function handleBrokerConfig(Request $request, string $format, ?string $uuid): Response | JsonResponse
@@ -200,6 +192,7 @@ class BrokerConfigController extends AbstractController
         }
        
         try {
+            // Choose the correct service method based on the data type
             if ($dataType === 'policies') {
                 $this->clearDataService->clearBrokerPoliciesData($broker);
                 $message = "Cleared policies for broker: {$broker->getName()}";
@@ -210,8 +203,25 @@ class BrokerConfigController extends AbstractController
                 throw new \InvalidArgumentException('Invalid data type');
             }
 
+            //     $this->addFlash('success', 'Broker policy data cleared successfully');
+
+            //     return $this->json(['message' => $message], JsonResponse::HTTP_OK);
+            // } catch (\Exception $e) {
+            //     return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+            // }
+
+            if ($format === 'admin') {
+                $this->addFlash('success', $message);
+                return new JsonResponse(['redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin'])]);
+            }
+       
             return $this->json(['message' => $message], JsonResponse::HTTP_OK);
         } catch (\Exception $e) {
+            if ($format === 'admin') {
+                $this->addFlash('error', $e->getMessage());
+                return new JsonResponse(['redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin'])]);
+            }
+       
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
