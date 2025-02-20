@@ -82,7 +82,6 @@ choco install mkcert
 ```sh
 git clone https://github.com/ahmedlasisi/csv-data-ingest.git
 cd csv-data-ingest
-docker compose build
 ```
 
 **2️⃣ Run the Setup Script**
