@@ -15,7 +15,6 @@ use Psr\Log\LoggerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use App\Interface\PolicyImportLoggerInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -44,13 +43,15 @@ class PolicyImportService
      */
     private array $entityCache = [];
     private bool $useCache = true;
+    private AggregationService $aggregationService;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
         PolicyImportLoggerInterface $importLogger,
         ManagerRegistry $managerRegistry,
-        UrlGeneratorInterface $urlGenerator
+        UrlGeneratorInterface $urlGenerator,
+        AggregationService $aggregationService
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
@@ -58,6 +59,7 @@ class PolicyImportService
         $this->managerRegistry = $managerRegistry;
         $this->dataDirectory = __DIR__ . '/../../var/data';
         $this->urlGenerator = $urlGenerator;
+        $this->aggregationService = $aggregationService;
     }
 
     public function setLogger(PolicyImportLoggerInterface $importLogger): void
@@ -152,6 +154,7 @@ class PolicyImportService
             $this->importLogger->error("Exception caught during file processing: " . $e->getMessage());
             $this->logAndReturnProcessingError($e, $filePath);
         }
+        $this->aggregationService->triggerCacheRefresh();
 
         $this->importLogger->success("Finished processing " . basename($filePath));
 
