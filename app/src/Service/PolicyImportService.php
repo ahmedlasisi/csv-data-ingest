@@ -18,6 +18,7 @@ use App\Interface\PolicyImportLoggerInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class PolicyImportService
 {
@@ -25,6 +26,7 @@ class PolicyImportService
     private LoggerInterface $logger;
     private string $dataDirectory;
     private PolicyImportLoggerInterface $importLogger;
+    private UrlGeneratorInterface $urlGenerator;
 
     private ManagerRegistry $managerRegistry;
 
@@ -47,13 +49,15 @@ class PolicyImportService
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
         PolicyImportLoggerInterface $importLogger,
-        ManagerRegistry $managerRegistry
+        ManagerRegistry $managerRegistry,
+        UrlGeneratorInterface $urlGenerator // Add UrlGeneratorInterface to the constructor
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->importLogger = $importLogger;
         $this->managerRegistry = $managerRegistry;
         $this->dataDirectory = __DIR__ . '/../../var/data';
+        $this->urlGenerator = $urlGenerator; // Initialize the UrlGeneratorInterface
     }
 
     public function setLogger(PolicyImportLoggerInterface $importLogger): void
@@ -95,10 +99,20 @@ class PolicyImportService
         $result = $this->processFile($filePath, $broker);
 
         if (empty($result)) {
-            return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
+            // return new JsonResponse(['status' => 'success', 'message' => "File processed successfully"]);
+            return new JsonResponse([
+                'redirect' => $this->generateUrl('broker_config_index', ['format' => 'admin']),
+                'status' => 'success',
+                'message' => 'CSV file uploaded successfully.'
+            ]);
         }
 
-        return new JsonResponse(['status' => 'error', 'message' => 'Failed to process file']);
+        return new JsonResponse(['status' => 'error', 'message' => $result]);
+    }
+
+    private function generateUrl(string $route, array $parameters = []): string
+    {
+        return $this->urlGenerator->generate($route, $parameters);
     }
 
     private function processFile(string $filePath, Broker $broker): ?array
@@ -135,7 +149,7 @@ class PolicyImportService
             
             $this->logger->info("Finished processing records for file: $filePath");
         } catch (\Throwable $e) {
-            $this->logger->error("Exception caught during file processing: " . $e->getMessage());
+            $this->importLogger->error("Exception caught during file processing: " . $e->getMessage());
             $this->logAndReturnProcessingError($e, $filePath);
         }
 
