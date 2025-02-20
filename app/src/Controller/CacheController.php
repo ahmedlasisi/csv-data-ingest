@@ -3,30 +3,34 @@
 namespace App\Controller;
 
 use App\Service\CacheHelper;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Service\AggregationService;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route('/api/cache')]
 #[IsGranted('ROLE_ADMIN')] // Restrict access to admin users
 class CacheController extends AbstractController
 {
     private CacheHelper $cacheHelper;
+    private AggregationService $aggregationService;
 
-    public function __construct(CacheHelper $cacheHelper)
+    public function __construct(CacheHelper $cacheHelper, AggregationService $aggregationService)
     {
         $this->cacheHelper = $cacheHelper;
+        $this->aggregationService = $aggregationService;
     }
 
     /**
      * Clears all cache.
      */
     #[Route('', methods: ['DELETE'])]
-    public function clearAllCache(): JsonResponse
+    public function refreshCache(): JsonResponse
     {
-        $this->cacheHelper->clearAllCache();
-        return $this->json(['message' => 'All cache cleared successfully'], JsonResponse::HTTP_OK);
+        $this->aggregationService->triggerCacheRefresh();
+
+        return $this->json(['message' => 'Cache refresh triggered successfully']);
     }
 
     /**
