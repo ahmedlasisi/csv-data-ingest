@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Logger;
 
 use App\Interface\PolicyImportLoggerInterface;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
@@ -12,6 +12,11 @@ class FlashPolicyImportLogger implements PolicyImportLoggerInterface
     public function __construct(FlashBagInterface $flashBag)
     {
         $this->flashBag = $flashBag;
+    }
+
+    public function log($level, $message, array $context = []): void
+    {
+        $this->flashBag->add($level, $message);
     }
 
     public function info(string $message): void

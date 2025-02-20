@@ -14,6 +14,13 @@ class ConsolePolicyImportLogger implements PolicyImportLoggerInterface
         $this->io = $io;
     }
 
+    public function log($level, $message, array $context = []): void
+    {
+        if ($this->io) {
+            $this->io->text($message);
+        }
+    }
+
     public function info(string $message): void
     {
         if ($this->io) {
