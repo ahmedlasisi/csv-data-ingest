@@ -226,16 +226,24 @@ Password: $DB_ROOT_PASSWORD
 The tests cover various aspects of the service, including CSV file processing, entity creation, and logging. The tests are written using PHPUnit, a popular testing framework for PHP. PHPUnit is used to test that the core functionalities, database interactions, and services work as expected.
 
 To run tests:
+**Note:** Ensure you are in the `app` directory before running the tests.
 
 ```sh
 cd app
+```
+
+```sh
 php bin/phpunit
 ```
 
 For a detailed test output:
+**Note:** Ensure you are in the `app` directory before running the tests.
 
 ```sh
- cd app
+cd app
+```
+
+```sh
  php bin/phpunit --testdox --debug
 ```
 
