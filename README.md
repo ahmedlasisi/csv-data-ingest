@@ -4,7 +4,7 @@ This project is a multi-tenant **broker data ingestion & analytics system** buil
 
 ## **🔹 Features**
 
-✔️ Multi-Tenant Broker Management  
+✔️ Multi Broker Management  
 ✔️ Configurable CSV Policy Import (Auto-Mapping)  
 ✔️ Data Aggregation & Reporting (Total Policies, Customers, Premiums, etc.)  
 ✔️ Redis Caching for Performance Boost  
@@ -183,14 +183,14 @@ For API testing, use the provided Postman API Collection. The API documentation 
 - POST /api/login - Authenticate & Get JWT Token
 - POST /api/register - User Registration
 
-📦 Broker/Tenant Onboarding
+📦 Broker Onboarding
 
 - POST /api/brokers/config/new - Create broker config
 - GET /api/brokers/config/list - List broker config
 - PUT /api/brokers/config/{uuid} - Update broker config
 - DELETE /api/brokers/config/delete/{uuid} - Delete broker config
 
-📥 Broker/Tenant Data Management
+📥 Broker Data Management
 
 - POST /api/brokers/config/upload/{uuid} - Upload CSV for broker
 - DELETE /api/brokers/{uuid}/clear-policies - Clear broker policies only
