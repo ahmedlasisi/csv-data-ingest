@@ -228,12 +228,14 @@ The tests cover various aspects of the service, including CSV file processing, e
 To run tests:
 
 ```sh
+cd app
 php bin/phpunit
 ```
 
 For a detailed test output:
 
 ```sh
+ cd app
  php bin/phpunit --testdox --debug
 ```
 
